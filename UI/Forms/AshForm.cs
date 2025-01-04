@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Media;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using AshClicker.Driver;
+using AshClicker.Properties;
 using Microsoft.Win32;
 
 namespace AshClicker
@@ -16,8 +18,6 @@ namespace AshClicker
         private const int ASH_HOTKEY_ID = 12489;
         private DdControl dd;
         private bool started;
-        private int delay;
-        private int press;
         private bool DDLoaded;
         private static readonly string defaultValue = "(添加)";
         private Dictionary<int, int> _keyMap = new Dictionary<int, int>();
@@ -95,14 +95,46 @@ namespace AshClicker
             return output;
         }
 
+        private SoundPlayer _start;
+        private SoundPlayer _stop;
         private void AshForm_Load(object sender, EventArgs e)
         {
             dd = new DdControl();
+            
+            using (var stream = new MemoryStream(Resources.start))
+            {
+                _start = new SoundPlayer(stream);
+                _start.Load();
+            }
+            
+            using (var stream = new MemoryStream(Resources.stop))
+            {
+                _stop = new SoundPlayer(stream);
+                _stop.Load();
+            }
+            using (var stream = new MemoryStream(Resources.silence))
+            {
+                new SoundPlayer(stream).PlaySync();
+            }
+
+            
             AshConfigPool.Instance.LoadToList(listView1);
+            var pressDelay = AshConfigPool.Instance.PressDelay;
+            var releaseDelay = AshConfigPool.Instance.ReleaseDelay;
+            textBox1.Text = (pressDelay > 0) ? pressDelay.ToString() : "15";
+            AshConfigPool.Instance.PressDelay = pressDelay > 0 ? pressDelay : 15;
+            textBox2.Text = (releaseDelay > 0) ? releaseDelay.ToString() : "1";
+            AshConfigPool.Instance.ReleaseDelay = releaseDelay > 0 ? releaseDelay : 1;
+
             label1.Text = label1.Text.Replace("%version%", ThisAssembly.Git.Tag);
             linkLabel1.LinkClicked += (s, evt) => Process.Start(new ProcessStartInfo
             {
                 FileName = "https://github.com/lj2000lj/AshClicker/",
+                UseShellExecute = true
+            });
+            linkLabel2.LinkClicked += (s, evt) => Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://zunko.jp/con_ongen_kiyaku.html",
                 UseShellExecute = true
             });
         }
@@ -127,12 +159,12 @@ namespace AshClicker
 
                 if (_modeMap.GetValueOrDefault(vKey, 0) == 0 && (GetAsyncKeyState(vKey) & 0x8000) != 0)
                 {
-                    PressKey(ddcode, press);
+                    PressKey(ddcode, AshConfigPool.Instance.ReleaseDelay);
                 }
 
                 if (_modeMap.GetValueOrDefault(vKey, 0) == 1 && pressedKeys.GetValueOrDefault(vKey, false))
                 {
-                    PressKey(ddcode, press);
+                    PressKey(ddcode, AshConfigPool.Instance.ReleaseDelay);
                 }
             }
         }
@@ -226,8 +258,8 @@ namespace AshClicker
                     RegisterKey(modes[i].Key, 0);
                 }
 
-                delay = Math.Max(int.Parse(textBox1.Text), 1);
-                AshTimer.Instance.Delay = delay;
+                AshConfigPool.Instance.PressDelay = Math.Max(int.Parse(textBox1.Text), 1);
+                AshTimer.Instance.Delay = AshConfigPool.Instance.PressDelay;
                 AshTimer.Instance.Func = tick;
                 AshTimer.Instance.Start();
                 buttonSwitchEnable.Text = "按键关闭";
@@ -261,8 +293,9 @@ namespace AshClicker
 
             textBox1.Text = new string(textBox1.Text.Where(char.IsDigit).ToArray());
             textBox1.SelectionStart = textBox1.Text.Length;
-            delay = Math.Max(int.Parse(textBox1.Text), 1);
-            AshTimer.Instance.Delay = delay;
+            AshConfigPool.Instance.PressDelay = Math.Max(int.Parse(textBox1.Text), 1);
+            AshTimer.Instance.Delay = AshConfigPool.Instance.PressDelay;
+            AshConfigPool.Instance.SaveConfig();
         }
 
         private void textBox2_TextChanged(object sender, EventArgs e)
@@ -271,7 +304,8 @@ namespace AshClicker
 
             textBox2.Text = new string(textBox2.Text.Where(char.IsDigit).ToArray());
             textBox2.SelectionStart = textBox2.Text.Length;
-            press = Math.Max(int.Parse(textBox2.Text), 1);
+            AshConfigPool.Instance.ReleaseDelay = Math.Max(int.Parse(textBox2.Text), 1);
+            AshConfigPool.Instance.SaveConfig();
         }
 
         private void buttonAddKey_Click(object sender, EventArgs e)
@@ -315,11 +349,11 @@ namespace AshClicker
                     pressedKeys[vKey] = !pressedKeys[vKey];
                     if (pressedKeys[vKey] && soundEffect.Checked)
                     {
-                        System.Media.SystemSounds.Beep.Play();
+                        _start.Play();
                     }
                     else if (soundEffect.Checked)
                     {
-                        System.Media.SystemSounds.Hand.Play();
+                        _stop.Play();
                     }
                 }
             }

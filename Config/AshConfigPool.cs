@@ -18,6 +18,9 @@ namespace AshClicker
         Dictionary<int, int> KeyMap { get; set; } = new Dictionary<int, int>();
         Dictionary<int, int> ModeMap { get; set; } = new Dictionary<int, int>();
 
+        public int PressDelay { get; set; }
+        public int ReleaseDelay { get; set; }
+
         public void GetAshConfigs(bool driverless, out Dictionary<int, int> outKeyMap,
             out Dictionary<int, int> outModeMap)
         {
@@ -87,7 +90,8 @@ namespace AshClicker
         {
             try
             {
-                var configData = new ConfigData { KeyMap = KeyMap, ModeMap = ModeMap };
+                var configData = new ConfigData
+                    { KeyMap = KeyMap, ModeMap = ModeMap, PressDelay = PressDelay, ReleaseDelay = ReleaseDelay };
                 var json = JsonConvert.SerializeObject(configData, Formatting.Indented);
                 File.WriteAllText(ConfigFilePath, json);
                 Console.WriteLine($"Configuration saved to {ConfigFilePath}");
@@ -111,6 +115,8 @@ namespace AshClicker
                     {
                         KeyMap = configData.KeyMap ?? new Dictionary<int, int>();
                         ModeMap = configData.ModeMap ?? new Dictionary<int, int>();
+                        PressDelay = configData.PressDelay;
+                        ReleaseDelay = configData.ReleaseDelay;
                         Console.WriteLine("Configuration loaded successfully.");
                     }
                 }
@@ -129,6 +135,9 @@ namespace AshClicker
         {
             public Dictionary<int, int> KeyMap { get; set; }
             public Dictionary<int, int> ModeMap { get; set; }
+
+            public int PressDelay { get; set; }
+            public int ReleaseDelay { get; set; }
         }
     }
 }
