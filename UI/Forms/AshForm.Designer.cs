@@ -256,7 +256,7 @@ namespace AshClicker
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.MaximizeBox = false;
             this.Name = "AshForm";
-            this.Text = "岚尘按键 | 能用就行";
+            this.Text = "无情按键";
             this.Load += new System.EventHandler(this.AshForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -1,10 +1,16 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>SwqClicker</AssemblyName>
+    <RootNamespace>AshClicker</RootNamespace>
+    <AssemblyTitle>无情按键</AssemblyTitle>
+    <Product>SwqClicker</Product>
+    <Description>无情按键 - 剑网3按键连发工具</Description>
+    <Company>ZhaoQisi</Company>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>Assets/Config/app.manifest</ApplicationManifest>
