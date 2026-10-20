@@ -125,18 +125,6 @@ namespace AshClicker
             AshConfigPool.Instance.PressDelay = pressDelay > 0 ? pressDelay : 15;
             textBox2.Text = (releaseDelay > 0) ? releaseDelay.ToString() : "1";
             AshConfigPool.Instance.ReleaseDelay = releaseDelay > 0 ? releaseDelay : 1;
-
-            label1.Text = label1.Text.Replace("%version%", ThisAssembly.Git.Tag);
-            linkLabel1.LinkClicked += (s, evt) => Process.Start(new ProcessStartInfo
-            {
-                FileName = "https://github.com/lj2000lj/AshClicker/",
-                UseShellExecute = true
-            });
-            linkLabel2.LinkClicked += (s, evt) => Process.Start(new ProcessStartInfo
-            {
-                FileName = "https://zunko.jp/con_ongen_kiyaku.html",
-                UseShellExecute = true
-            });
         }
 
         [DllImport("user32.dll")]

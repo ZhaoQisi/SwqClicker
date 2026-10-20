@@ -34,7 +34,6 @@ namespace AshClicker
         {
             this.buttonLoadDriver = new System.Windows.Forms.Button();
             this.buttonSwitchEnable = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
@@ -51,9 +50,7 @@ namespace AshClicker
             this.buttonDriverless = new System.Windows.Forms.Button();
             this.buttonInstallInterception = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
-            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.soundEffect = new System.Windows.Forms.CheckBox();
-            this.linkLabel2 = new System.Windows.Forms.LinkLabel();
             this.SuspendLayout();
             // 
             // buttonLoadDriver
@@ -69,7 +66,7 @@ namespace AshClicker
             // 
             // buttonSwitchEnable
             // 
-            this.buttonSwitchEnable.Location = new System.Drawing.Point(233, 252);
+            this.buttonSwitchEnable.Location = new System.Drawing.Point(233, 106);
             this.buttonSwitchEnable.Name = "buttonSwitchEnable";
             this.buttonSwitchEnable.Size = new System.Drawing.Size(154, 32);
             this.buttonSwitchEnable.TabIndex = 1;
@@ -77,17 +74,9 @@ namespace AshClicker
             this.buttonSwitchEnable.UseVisualStyleBackColor = true;
             this.buttonSwitchEnable.Click += new System.EventHandler(this.button2_Click);
             // 
-            // label1
-            // 
-            this.label1.Location = new System.Drawing.Point(19, 9);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(370, 105);
-            this.label1.TabIndex = 2;
-            this.label1.Text = "真不联网的公告：\r\n  - 当前版本 %version%\r\n  - 能用就行，有问题请前来 GitHub 提 Issue\r\n  - 基于 GPL-3.0 开源协议" + "发布，项目地址：\r\n\r\n\r\n  - CV：VOICEVOX ずんだもん";
-            // 
             // label2
             // 
-            this.label2.Location = new System.Drawing.Point(17, 161);
+            this.label2.Location = new System.Drawing.Point(17, 15);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(372, 19);
             this.label2.TabIndex = 3;
@@ -95,7 +84,7 @@ namespace AshClicker
             // 
             // label3
             // 
-            this.label3.Location = new System.Drawing.Point(96, 161);
+            this.label3.Location = new System.Drawing.Point(96, 15);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(75, 19);
             this.label3.TabIndex = 4;
@@ -103,7 +92,7 @@ namespace AshClicker
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(17, 202);
+            this.textBox1.Location = new System.Drawing.Point(17, 56);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(154, 25);
             this.textBox1.TabIndex = 5;
@@ -112,7 +101,7 @@ namespace AshClicker
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(17, 257);
+            this.textBox2.Location = new System.Drawing.Point(17, 111);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(154, 25);
             this.textBox2.TabIndex = 6;
@@ -121,7 +110,7 @@ namespace AshClicker
             // 
             // label4
             // 
-            this.label4.Location = new System.Drawing.Point(17, 180);
+            this.label4.Location = new System.Drawing.Point(17, 34);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(178, 22);
             this.label4.TabIndex = 7;
@@ -129,7 +118,7 @@ namespace AshClicker
             // 
             // label5
             // 
-            this.label5.Location = new System.Drawing.Point(17, 232);
+            this.label5.Location = new System.Drawing.Point(17, 86);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(178, 22);
             this.label5.TabIndex = 8;
@@ -142,7 +131,7 @@ namespace AshClicker
             this.listView1.GridLines = true;
             this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listView1.HideSelection = false;
-            this.listView1.Location = new System.Drawing.Point(17, 290);
+            this.listView1.Location = new System.Drawing.Point(17, 144);
             this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(372, 171);
@@ -170,7 +159,7 @@ namespace AshClicker
             // 
             // buttonDeleteKey
             // 
-            this.buttonDeleteKey.Location = new System.Drawing.Point(235, 467);
+            this.buttonDeleteKey.Location = new System.Drawing.Point(235, 321);
             this.buttonDeleteKey.Name = "buttonDeleteKey";
             this.buttonDeleteKey.Size = new System.Drawing.Size(154, 53);
             this.buttonDeleteKey.TabIndex = 10;
@@ -180,7 +169,7 @@ namespace AshClicker
             // 
             // buttonAddKey
             // 
-            this.buttonAddKey.Location = new System.Drawing.Point(17, 467);
+            this.buttonAddKey.Location = new System.Drawing.Point(17, 321);
             this.buttonAddKey.Name = "buttonAddKey";
             this.buttonAddKey.Size = new System.Drawing.Size(154, 53);
             this.buttonAddKey.TabIndex = 11;
@@ -192,7 +181,7 @@ namespace AshClicker
             // 
             this.preciseDelay.Checked = true;
             this.preciseDelay.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.preciseDelay.Location = new System.Drawing.Point(283, 161);
+            this.preciseDelay.Location = new System.Drawing.Point(283, 15);
             this.preciseDelay.Name = "preciseDelay";
             this.preciseDelay.Size = new System.Drawing.Size(104, 24);
             this.preciseDelay.TabIndex = 12;
@@ -212,7 +201,7 @@ namespace AshClicker
             // 
             // buttonInstallInterception
             // 
-            this.buttonInstallInterception.Location = new System.Drawing.Point(233, 183);
+            this.buttonInstallInterception.Location = new System.Drawing.Point(233, 37);
             this.buttonInstallInterception.Name = "buttonInstallInterception";
             this.buttonInstallInterception.Size = new System.Drawing.Size(154, 34);
             this.buttonInstallInterception.TabIndex = 14;
@@ -222,7 +211,7 @@ namespace AshClicker
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(233, 217);
+            this.button1.Location = new System.Drawing.Point(233, 71);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(154, 34);
             this.button1.TabIndex = 15;
@@ -230,48 +219,24 @@ namespace AshClicker
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click_1);
             // 
-            // linkLabel1
-            // 
-            this.linkLabel1.BackColor = System.Drawing.Color.Transparent;
-            this.linkLabel1.Cursor = System.Windows.Forms.Cursors.Default;
-            this.linkLabel1.Location = new System.Drawing.Point(52, 69);
-            this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(322, 18);
-            this.linkLabel1.TabIndex = 16;
-            this.linkLabel1.TabStop = true;
-            this.linkLabel1.Text = "https://github.com/lj2000lj/AshClicker/";
-            // 
             // soundEffect
             // 
             this.soundEffect.Checked = true;
             this.soundEffect.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.soundEffect.Location = new System.Drawing.Point(173, 161);
+            this.soundEffect.Location = new System.Drawing.Point(173, 15);
             this.soundEffect.Name = "soundEffect";
             this.soundEffect.Size = new System.Drawing.Size(104, 24);
             this.soundEffect.TabIndex = 17;
             this.soundEffect.Text = "音效提示";
             this.soundEffect.UseVisualStyleBackColor = true;
             // 
-            // linkLabel2
-            // 
-            this.linkLabel2.BackColor = System.Drawing.Color.Transparent;
-            this.linkLabel2.Cursor = System.Windows.Forms.Cursors.Default;
-            this.linkLabel2.Location = new System.Drawing.Point(52, 116);
-            this.linkLabel2.Name = "linkLabel2";
-            this.linkLabel2.Size = new System.Drawing.Size(322, 18);
-            this.linkLabel2.TabIndex = 18;
-            this.linkLabel2.TabStop = true;
-            this.linkLabel2.Text = "https://zunko.jp/con_ongen_kiyaku.html";
-            // 
             // AshForm
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(405, 524);
-            this.Controls.Add(this.linkLabel2);
+            this.ClientSize = new System.Drawing.Size(405, 390);
             this.Controls.Add(this.soundEffect);
-            this.Controls.Add(this.linkLabel1);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.buttonInstallInterception);
             this.Controls.Add(this.preciseDelay);
@@ -284,7 +249,6 @@ namespace AshClicker
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.label1);
             this.Controls.Add(this.buttonSwitchEnable);
             this.Controls.Add(this.buttonDriverless);
             this.Controls.Add(this.buttonLoadDriver);
@@ -298,11 +262,7 @@ namespace AshClicker
             this.PerformLayout();
         }
 
-        private System.Windows.Forms.LinkLabel linkLabel2;
-
         private System.Windows.Forms.CheckBox soundEffect;
-
-        private System.Windows.Forms.LinkLabel linkLabel1;
 
         private System.Windows.Forms.Button button1;
 
@@ -326,7 +286,6 @@ namespace AshClicker
 
         private System.Windows.Forms.TextBox textBox1;
 
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
 
