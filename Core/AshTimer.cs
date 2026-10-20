@@ -16,7 +16,7 @@ namespace AshClicker
         private readonly object _lockObject = new object();
 
         public Action Func { get; set; } = () => { };
-        public int Delay { get; set; } = 1;
+        public int Delay { get; set; } = 20;
 
         private bool _enabled = false;
 

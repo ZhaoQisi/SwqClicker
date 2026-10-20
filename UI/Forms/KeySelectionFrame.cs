@@ -22,8 +22,18 @@ namespace AshClicker
                 return;
             }
 
-            mainListView.Items.Add(AshUtil.CreateKeyMappingItem(userPress, willPress, comboBox1.SelectedItem.ToString(),
-                comboBox1.SelectedIndex));
+            var name = textBoxName.Text.Trim();
+            if (name.Length > 6)
+            {
+                name = name.Substring(0, 6);
+            }
+
+            if (name.Length == 0)
+            {
+                name = AshConfigPool.Instance.NextDefaultSchemeName();
+            }
+
+            mainListView.Items.Add(AshUtil.CreateKeyMappingItem(name, userPress, willPress, comboBox1.SelectedIndex));
             AshConfigPool.Instance.UpdateFromList(mainListView);
             Close();
         }
@@ -33,7 +43,7 @@ namespace AshClicker
             if (sender is TextBox textBox)
             {
                 textBox.Tag = AshKeyMap.Get(e.KeyValue);
-                textBox.Text = AshKeyMap.Get(e.KeyValue).Description;
+                textBox.Text = AshKeyMap.Get(e.KeyValue).ShortName;
                 e.SuppressKeyPress = true;
             }
         }
@@ -43,6 +53,7 @@ namespace AshClicker
             comboBox1.SelectedIndex = 0;
             textBox1.Tag = null;
             textBox2.Tag = null;
+            textBoxName.Text = AshConfigPool.Instance.NextDefaultSchemeName();
         }
     }
 }

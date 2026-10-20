@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Media;
@@ -15,16 +16,22 @@ namespace AshClicker
 {
     public partial class AshForm : Form
     {
-        private const int ASH_HOTKEY_ID = 12489;
+        private const int HOTKEY_TOGGLE_ID = 12490;
+
         private DdControl dd;
         private bool started;
         private bool DDLoaded;
-        private static readonly string defaultValue = "(添加)";
-        private Dictionary<int, int> _keyMap = new Dictionary<int, int>();
-        private Dictionary<int, int> _modeMap = new Dictionary<int, int>();
-        private Dictionary<int, bool> pressedKeys = new Dictionary<int, bool>();
         private InterceptionControl ic;
-        private InterceptionClient icl;
+
+        private readonly ClickerEngine engine;
+        private readonly KeySender keySender;
+        private InterceptionListener listener;
+
+        private Dictionary<int, bool> _polledDown = new Dictionary<int, bool>();
+        private int[] _pollKeys = new int[0];
+        private int _registeredToggleKey;
+        private readonly List<int> _activeSchemes = new List<int>();
+        private MiniStatusForm mini;
 
         public AshForm()
         {
@@ -37,9 +44,17 @@ namespace AshClicker
 
             Console.WriteLine($"Informational Version: {infoVersion}");
             InitializeComponent();
+
+            keySender = new KeySender();
+            engine = new ClickerEngine(keySender);
+            engine.PauseChanged += Engine_PauseChanged;
+            engine.SchemeStateChanged += Engine_SchemeStateChanged;
+            Resize += AshForm_Resize;
+
             try
             {
                 ic = new InterceptionControl();
+                keySender.Interception = ic;
             }
             catch (Exception ex)
             {
@@ -97,16 +112,71 @@ namespace AshClicker
 
         private SoundPlayer _start;
         private SoundPlayer _stop;
+
+        [DllImport("user32.dll")]
+        private static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        private const int WM_NCLBUTTONDOWN = 0xA1;
+        private const int HTCAPTION = 2;
+
+        /// <summary>无边框窗口用标题栏模拟系统拖动。</summary>
+        private void TitleBar_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left) return;
+
+            ReleaseCapture();
+            SendMessage(Handle, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
+        }
+
+        private void buttonMinimize_Click(object sender, EventArgs e)
+        {
+            WindowState = FormWindowState.Minimized;
+        }
+
+        private void buttonClose_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.ClassStyle |= 0x00020000; // CS_DROPSHADOW：无边框窗口也带阴影
+                return cp;
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            using (var pen = new Pen(Color.FromArgb(200, 200, 200)))
+            {
+                e.Graphics.DrawRectangle(pen, 0, 0, Width - 1, Height - 1);
+            }
+        }
+
         private void AshForm_Load(object sender, EventArgs e)
         {
+            if (Icon != null)
+            {
+                titleIcon.Image = Icon.ToBitmap();
+            }
+
             dd = new DdControl();
-            
+            keySender.Dd = dd;
+
             using (var stream = new MemoryStream(Resources.start))
             {
                 _start = new SoundPlayer(stream);
                 _start.Load();
             }
-            
+
             using (var stream = new MemoryStream(Resources.stop))
             {
                 _stop = new SoundPlayer(stream);
@@ -117,14 +187,20 @@ namespace AshClicker
                 new SoundPlayer(stream).PlaySync();
             }
 
-            
+
             AshConfigPool.Instance.LoadToList(listView1);
+            FitListColumns();
+            listView1.ClientSizeChanged += (cs, ce) => FitListColumns();
+
             var pressDelay = AshConfigPool.Instance.PressDelay;
             var releaseDelay = AshConfigPool.Instance.ReleaseDelay;
-            textBox1.Text = (pressDelay > 0) ? pressDelay.ToString() : "15";
-            AshConfigPool.Instance.PressDelay = pressDelay > 0 ? pressDelay : 15;
-            textBox2.Text = (releaseDelay > 0) ? releaseDelay.ToString() : "1";
-            AshConfigPool.Instance.ReleaseDelay = releaseDelay > 0 ? releaseDelay : 1;
+            textBox1.Text = (pressDelay > 0) ? pressDelay.ToString() : "20";
+            AshConfigPool.Instance.PressDelay = pressDelay > 0 ? pressDelay : 20;
+            textBox2.Text = (releaseDelay > 0) ? releaseDelay.ToString() : "5";
+            AshConfigPool.Instance.ReleaseDelay = releaseDelay > 0 ? releaseDelay : 5;
+
+            UpdateHotkeyButtons();
+            ApplyToggleHotkey();
         }
 
         [DllImport("user32.dll")]
@@ -136,61 +212,64 @@ namespace AshClicker
         [DllImport("winmm.dll")]
         public static extern uint timeEndPeriod(uint uMilliseconds);
 
-        private void tick()
+        /// <summary>
+        /// 让「绑定关系」列自动填满剩余宽度（-2），不出现左右滚动条；
+        /// 出现竖向滚动条时 ListView 会触发 ClientSizeChanged，这里会跟着重算。
+        /// </summary>
+        private void FitListColumns()
         {
-            if (!started) return;
+            if (listView1.Columns.Count < 2) return;
 
-            foreach (var kvp in _keyMap)
+            listView1.Columns[1].Width = -2;
+        }
+
+        /// <summary>连发循环的每一拍：驱动模式下由拦截线程更新状态，这里只负责发送；DD 模式需要自己轮询。</summary>
+        private void TimerTick()
+        {
+            if (!usingInterception)
             {
-                int vKey = kvp.Key;
-                int ddcode = kvp.Value;
+                PollKeys();
+            }
 
-                if (_modeMap.GetValueOrDefault(vKey, 0) == 0 && (GetAsyncKeyState(vKey) & 0x8000) != 0)
+            engine.Tick();
+        }
+
+        /// <summary>DD / 无驱动模式拿不到拦截事件，只能轮询按键状态。</summary>
+        private void PollKeys()
+        {
+            foreach (var vKey in _pollKeys)
+            {
+                var isDown = (GetAsyncKeyState(vKey) & 0x8000) != 0;
+
+                bool previous;
+                if (_polledDown.TryGetValue(vKey, out previous) && previous == isDown) continue;
+
+                _polledDown[vKey] = isDown;
+
+                if (isDown)
                 {
-                    PressKey(ddcode, AshConfigPool.Instance.ReleaseDelay);
+                    engine.HandleKeyDown(vKey);
                 }
-
-                if (_modeMap.GetValueOrDefault(vKey, 0) == 1 && pressedKeys.GetValueOrDefault(vKey, false))
+                else
                 {
-                    PressKey(ddcode, AshConfigPool.Instance.ReleaseDelay);
+                    engine.HandleKeyUp(vKey);
                 }
             }
         }
 
-        private void PressKey(int ddcode, int press)
+        private void BuildPollKeys(Dictionary<int, int> targets, int pauseKey)
         {
-            if (usingInterception)
+            var keys = new List<int>(targets.Keys);
+            if (pauseKey != 0 && !keys.Contains(pauseKey))
             {
-                /*var keyStroke = new KeyboardInputData
-                {
-                    UnitId = 0, // 固定为 0
-                    MakeCode = (ushort)ddcode, // 'A' 键的扫描码
-                    Flags = 0x00, // 按下状态
-                    Reserved = 0, // 固定为 0
-                    ExtraInformation = 0 // 无附加信息
-                };
-                icl.SendKeyStroke(keyStroke);
-                AshStopwatch.PreciseDelay(press);
-                keyStroke.Flags = 0x01;
-                icl.SendKeyStroke(keyStroke);*/
-                var stroke = new InterceptionControl.Stroke
-                {
-                    Key = new InterceptionControl.KeyStroke
-                    {
-                        Code = (ushort)ddcode,
-                        State = 0x00 // 按下键
-                    }
-                };
-                ic.Send(1, ref stroke);
-                AshStopwatch.PreciseDelay(press);
-                stroke.Key.State = 0x01; // 松开键
-                ic.Send(1, ref stroke);
+                keys.Add(pauseKey);
             }
-            else
+
+            _pollKeys = keys.ToArray();
+            _polledDown = new Dictionary<int, bool>();
+            foreach (var key in _pollKeys)
             {
-                dd.key(ddcode, 1);
-                AshStopwatch.PreciseDelay(press);
-                dd.key(ddcode, 2);
+                _polledDown[key] = false;
             }
         }
 
@@ -233,46 +312,266 @@ namespace AshClicker
 
         private void button2_Click(object sender, EventArgs e)
         {
-            started = !started;
+            ToggleClicker();
+        }
+
+        private void ToggleClicker()
+        {
             if (started)
             {
-                AshStopwatch.UsePrecise = preciseDelay.Checked;
-                AshConfigPool.Instance.GetAshConfigs(usingInterception, out _keyMap, out _modeMap);
-                var modes = _modeMap.Where(m => m.Value == 1).ToList();
-
-                // No idea why, but with Fody enabled, foreach will throw an exception :(
-                for (var i = 0; i < modes.Count; i++)
-                {
-                    RegisterKey(modes[i].Key, 0);
-                }
-
-                AshConfigPool.Instance.PressDelay = Math.Max(int.Parse(textBox1.Text), 1);
-                AshTimer.Instance.Delay = AshConfigPool.Instance.PressDelay;
-                AshTimer.Instance.Func = tick;
-                AshTimer.Instance.Start();
-                buttonSwitchEnable.Text = "按键关闭";
-                label3.Text = "已开启";
-                preciseDelay.Enabled = false;
-                buttonAddKey.Enabled = false;
-                buttonDeleteKey.Enabled = false;
+                StopClicker();
             }
             else
             {
-                AshTimer.Instance.Stop();
-                foreach (var modes in _modeMap)
+                StartClicker();
+            }
+        }
+
+        private void StartClicker()
+        {
+            if (started) return;
+
+            if (!ValidateHotkeys()) return;
+
+            Dictionary<int, int> targets;
+            Dictionary<int, int> modes;
+            AshConfigPool.Instance.GetMaps(out targets, out modes);
+
+            if (targets.Count == 0)
+            {
+                MessageBox.Show("还没有添加任何键位喔！");
+                return;
+            }
+
+            if (usingInterception && ic == null)
+            {
+                MessageBox.Show("驱动还没有就绪，请先安装驱动并重启电脑。");
+                return;
+            }
+
+            AshStopwatch.UsePrecise = preciseDelay.Checked;
+
+            keySender.UseInterception = usingInterception;
+
+            engine.Start(targets, modes, AshConfigPool.Instance.PauseKey, AshConfigPool.Instance.ReleaseDelay);
+
+            if (usingInterception)
+            {
+                // 驱动模式：接管键盘，被映射的按键不会再传给游戏
+                listener = new InterceptionListener(ic, engine);
+                listener.Start();
+            }
+            else
+            {
+                BuildPollKeys(targets, AshConfigPool.Instance.PauseKey);
+            }
+
+            int pressDelay;
+            if (!int.TryParse(textBox1.Text, out pressDelay) || pressDelay < 1) pressDelay = 15;
+            AshConfigPool.Instance.PressDelay = pressDelay;
+            AshTimer.Instance.Delay = pressDelay;
+            AshTimer.Instance.Func = TimerTick;
+            AshTimer.Instance.Start();
+
+            started = true;
+            buttonSwitchEnable.Text = "按键关闭";
+            label3.Text = "已开启";
+            preciseDelay.Enabled = false;
+            buttonAddKey.Enabled = false;
+            buttonDeleteKey.Enabled = false;
+            buttonToggleHotkey.Enabled = false;
+            buttonPauseHotkey.Enabled = false;
+
+            _activeSchemes.Clear();
+            UpdateMiniStatus();
+
+            // 音效只响应总开关的开启
+            if (soundEffect.Checked && _start != null) _start.Play();
+        }
+
+        private void StopClicker()
+        {
+            if (!started) return;
+
+            started = false;
+
+            // 先停用引擎：拦截线程随后收到的按键会原样放行，不会卡住键盘
+            engine.Stop();
+
+            AshTimer.Instance.Stop();
+
+            if (listener != null)
+            {
+                listener.Stop();
+                listener = null;
+            }
+
+            buttonSwitchEnable.Text = "按键开启";
+            label3.Text = "关闭";
+            preciseDelay.Enabled = true;
+            buttonAddKey.Enabled = true;
+            buttonDeleteKey.Enabled = true;
+            buttonToggleHotkey.Enabled = true;
+            buttonPauseHotkey.Enabled = true;
+
+            _activeSchemes.Clear();
+            UpdateMiniStatus();
+
+            // 音效只响应总开关的关闭
+            if (soundEffect.Checked && _stop != null) _stop.Play();
+        }
+
+        private void Engine_PauseChanged(bool paused)
+        {
+            if (IsDisposed) return;
+
+            try
+            {
+                if (InvokeRequired)
                 {
-                    if (modes.Value == 1)
-                    {
-                        UnregisterHotKey(Handle, ASH_HOTKEY_ID + modes.Key);
-                    }
+                    BeginInvoke(new Action<bool>(OnPauseChanged), paused);
+                }
+                else
+                {
+                    OnPauseChanged(paused);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // 窗口正在关闭，忽略
+            }
+        }
+
+        private void OnPauseChanged(bool paused)
+        {
+            if (!started) return;
+
+            label3.Text = paused ? "已暂停" : "已开启";
+            UpdateMiniStatus();
+        }
+
+        private void Engine_SchemeStateChanged(int vKey, bool active)
+        {
+            if (IsDisposed) return;
+
+            try
+            {
+                if (InvokeRequired)
+                {
+                    BeginInvoke(new Action<int, bool>(OnSchemeStateChanged), vKey, active);
+                }
+                else
+                {
+                    OnSchemeStateChanged(vKey, active);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // 窗口正在关闭，忽略
+            }
+        }
+
+        private void OnSchemeStateChanged(int vKey, bool active)
+        {
+            _activeSchemes.Remove(vKey);
+            if (active)
+            {
+                _activeSchemes.Add(vKey);
+            }
+
+            UpdateMiniStatus();
+        }
+
+        private void AshForm_Resize(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Minimized)
+            {
+                ShowMiniStatus();
+            }
+            else
+            {
+                HideMiniStatus();
+            }
+        }
+
+        private void ShowMiniStatus()
+        {
+            if (mini == null || mini.IsDisposed)
+            {
+                mini = new MiniStatusForm();
+                mini.RestoreRequested += (s, e) => RestoreFromMini();
+                mini.ExitRequested += (s, e) => Close();
+
+                // 只在第一次显示时放到默认位置，之后记住用户拖动的位置
+                mini.MoveToDefaultPosition();
+            }
+
+            UpdateMiniStatus();
+
+            if (!mini.Visible)
+            {
+                if (!IsOnAnyScreen(mini.Bounds))
+                {
+                    mini.MoveToDefaultPosition();
                 }
 
-                buttonSwitchEnable.Text = "按键开启";
-                label3.Text = "关闭";
-                preciseDelay.Enabled = true;
-                buttonAddKey.Enabled = true;
-                buttonDeleteKey.Enabled = true;
+                mini.Show();
             }
+        }
+
+        private static bool IsOnAnyScreen(Rectangle bounds)
+        {
+            foreach (var screen in Screen.AllScreens)
+            {
+                if (screen.WorkingArea.IntersectsWith(bounds)) return true;
+            }
+
+            return false;
+        }
+
+        private void HideMiniStatus()
+        {
+            if (mini != null && !mini.IsDisposed && mini.Visible)
+            {
+                mini.Hide();
+            }
+        }
+
+        private void RestoreFromMini()
+        {
+            WindowState = FormWindowState.Normal;
+            Show();
+            Activate();
+            HideMiniStatus();
+        }
+
+        private void UpdateMiniStatus()
+        {
+            if (mini == null || mini.IsDisposed) return;
+
+            if (!started)
+            {
+                mini.SetStatus("已关闭", false);
+                return;
+            }
+
+            var name = CurrentSchemeName();
+
+            if (engine.Paused)
+            {
+                mini.SetStatus(name ?? "已暂停", false);
+                return;
+            }
+
+            mini.SetStatus(name ?? "已开启", true);
+        }
+
+        private string CurrentSchemeName()
+        {
+            if (_activeSchemes.Count == 0) return null;
+
+            var vKey = _activeSchemes[_activeSchemes.Count - 1];
+            return AshConfigPool.Instance.GetSchemeName(vKey);
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -293,6 +592,7 @@ namespace AshClicker
             textBox2.Text = new string(textBox2.Text.Where(char.IsDigit).ToArray());
             textBox2.SelectionStart = textBox2.Text.Length;
             AshConfigPool.Instance.ReleaseDelay = Math.Max(int.Parse(textBox2.Text), 1);
+            engine.SetReleaseDelay(AshConfigPool.Instance.ReleaseDelay);
             AshConfigPool.Instance.SaveConfig();
         }
 
@@ -311,45 +611,191 @@ namespace AshClicker
             AshConfigPool.Instance.UpdateFromList(listView1);
         }
 
-        private void RegisterKey(int vKey, KeyModifiers modifiers)
+        private bool ValidateHotkeys()
         {
-            int id = ASH_HOTKEY_ID + vKey;
-            _modeMap[vKey] = 1;
-            pressedKeys[vKey] = false;
+            var toggleKey = AshConfigPool.Instance.ToggleKey;
+            var pauseKey = AshConfigPool.Instance.PauseKey;
 
-            if (!RegisterHotKey(Handle, id, modifiers, (Keys)vKey))
+            if (toggleKey != 0 && toggleKey == pauseKey)
             {
-                MessageBox.Show($"热键注册失败: {vKey}");
+                MessageBox.Show("开关快捷键和暂停键不能是同一个按键。");
+                return false;
             }
+
+            if (pauseKey != 0 && AshConfigPool.Instance.IsMappedKey(pauseKey))
+            {
+                MessageBox.Show("暂停键不能是映射里的「按下的键」，请换一个。");
+                return false;
+            }
+
+            if (toggleKey != 0 && AshConfigPool.Instance.IsMappedKey(toggleKey))
+            {
+                MessageBox.Show("开关快捷键不能是映射里的「按下的键」，请换一个。");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void buttonToggleHotkey_Click(object sender, EventArgs e)
+        {
+            var picked = PickKey(AshConfigPool.Instance.ToggleKey, false);
+            if (!picked.HasValue) return;
+
+            var key = picked.Value;
+
+            if (key != 0)
+            {
+                if (key == AshConfigPool.Instance.PauseKey)
+                {
+                    MessageBox.Show("开关快捷键不能和暂停键相同。");
+                    return;
+                }
+
+                if (AshConfigPool.Instance.IsMappedKey(key))
+                {
+                    MessageBox.Show("这个按键已经是映射里的「按下的键」，会和拦截逻辑冲突，请换一个。");
+                    return;
+                }
+            }
+
+            AshConfigPool.Instance.ToggleKey = key;
+            AshConfigPool.Instance.SaveConfig();
+            ApplyToggleHotkey();
+        }
+
+        private void buttonPauseHotkey_Click(object sender, EventArgs e)
+        {
+            var picked = PickKey(AshConfigPool.Instance.PauseKey, true);
+            if (!picked.HasValue) return;
+
+            var key = picked.Value;
+
+            if (key != 0)
+            {
+                if (key == AshConfigPool.Instance.ToggleKey)
+                {
+                    MessageBox.Show("暂停键不能和开关快捷键相同。");
+                    return;
+                }
+
+                if (AshConfigPool.Instance.IsMappedKey(key))
+                {
+                    MessageBox.Show("这个按键已经是映射里的「按下的键」，会和拦截逻辑冲突，请换一个。");
+                    return;
+                }
+            }
+
+            AshConfigPool.Instance.PauseKey = key;
+            AshConfigPool.Instance.SaveConfig();
+            UpdateHotkeyButtons();
+        }
+
+        private int? PickKey(int currentKey, bool allowModifiers)
+        {
+            using (var form = new HotkeyCaptureForm(currentKey, allowModifiers))
+            {
+                return form.ShowDialog(this) == DialogResult.OK ? form.SelectedKey : (int?)null;
+            }
+        }
+
+        private void UpdateHotkeyButtons()
+        {
+            buttonToggleHotkey.Text = DescribeHotkey(AshConfigPool.Instance.ToggleKey);
+            buttonPauseHotkey.Text = DescribeHotkey(AshConfigPool.Instance.PauseKey);
+        }
+
+        private static string DescribeHotkey(int vKey)
+        {
+            if (vKey <= 0) return "未设置（点击设置）";
+
+            var key = AshKeyMap.Get(vKey);
+            if (key == null) return "未设置（点击设置）";
+
+            // 修饰键单独作为暂停键时，显示成更直观的名字
+            switch (vKey)
+            {
+                case 0xA0:
+                case 0xA1:
+                    return "Shift（点击修改）";
+                case 0xA2:
+                case 0xA3:
+                    return "Ctrl（点击修改）";
+                case 0xA4:
+                case 0xA5:
+                    return "Alt（点击修改）";
+                case 0x5B:
+                    return "左 Win（点击修改）";
+                case 0x5C:
+                    return "右 Win（点击修改）";
+                default:
+                    return key.ShortName + "（点击修改）";
+            }
+        }
+
+        /// <summary>注册/重新注册「一键开关」的全局快捷键，这样关闭状态下也能用快捷键开启。</summary>
+        private void ApplyToggleHotkey()
+        {
+            if (!IsHandleCreated) return;
+
+            if (_registeredToggleKey != 0)
+            {
+                UnregisterHotKey(Handle, HOTKEY_TOGGLE_ID);
+                _registeredToggleKey = 0;
+            }
+
+            var toggleKey = AshConfigPool.Instance.ToggleKey;
+            if (toggleKey > 0)
+            {
+                if (RegisterHotKey(Handle, HOTKEY_TOGGLE_ID, 0, (Keys)toggleKey))
+                {
+                    _registeredToggleKey = toggleKey;
+                }
+                else
+                {
+                    MessageBox.Show("快捷键「" + AshKeyMap.Get(toggleKey).Description +
+                                    "」注册失败，可能已被系统或其他程序占用，请换一个。");
+                    AshConfigPool.Instance.ToggleKey = 0;
+                    AshConfigPool.Instance.SaveConfig();
+                }
+            }
+
+            UpdateHotkeyButtons();
         }
 
         protected override void WndProc(ref Message m)
         {
             const int WM_HOTKEY = 0x0312;
 
-            if (m.Msg == WM_HOTKEY)
+            if (m.Msg == WM_HOTKEY && m.WParam.ToInt32() == HOTKEY_TOGGLE_ID)
             {
-                int id = m.WParam.ToInt32();
-                int vKey = id - ASH_HOTKEY_ID;
-
-                if (_modeMap.GetValueOrDefault(vKey, 0) == 1)
-                {
-                    pressedKeys[vKey] = !pressedKeys[vKey];
-                    if (pressedKeys[vKey] && soundEffect.Checked)
-                    {
-                        _start.Play();
-                    }
-                    else if (soundEffect.Checked)
-                    {
-                        _stop.Play();
-                    }
-                }
+                ToggleClicker();
+                return;
             }
 
             base.WndProc(ref m);
         }
 
-        private bool usingInterception = true;
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            if (_registeredToggleKey != 0)
+            {
+                UnregisterHotKey(Handle, HOTKEY_TOGGLE_ID);
+                _registeredToggleKey = 0;
+            }
+
+            StopClicker();
+
+            if (mini != null && !mini.IsDisposed)
+            {
+                mini.Close();
+                mini = null;
+            }
+
+            base.OnFormClosed(e);
+        }
+
+        private volatile bool usingInterception = true;
 
         private void buttonDriverless_Click(object sender, EventArgs e)
         {

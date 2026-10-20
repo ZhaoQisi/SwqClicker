@@ -4,15 +4,95 @@ namespace AshClicker
 {
     public static class AshKeyMap
     {
-        public static string MapMode(int mode)
+        private static Dictionary<int, int>[] scanMaps;
+        private static readonly object scanMapLock = new object();
+
+        /// <summary>这些虚拟键在驱动里带 E0 前缀，扫描码会和小键盘键冲突。</summary>
+        private static readonly HashSet<int> ExtendedVKeys = new HashSet<int>
         {
-            switch (mode)
+            0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, // PgUp / PgDn / End / Home / 方向键
+            0x2D, 0x2E, // Insert / Delete
+            0x90, // NumLock
+            0x6F, // 小键盘 /
+            0x6D, // 小键盘 -
+            0x6B, // 小键盘 +
+            0x6E, // 小键盘 .
+            0x2C, // PrintScreen
+            0xA3, 0xA5, // 右 Ctrl / 右 Alt
+            0x5B, 0x5C // 左右 Win
+        };
+
+        public static bool IsExtendedKey(int vKey)
+        {
+            return ExtendedVKeys.Contains(vKey);
+        }
+
+        /// <summary>
+        /// 把驱动拦截到的按键状态还原成虚拟键码，用于识别物理按键。
+        /// </summary>
+        /// <param name="scanCode">扫描码</param>
+        /// <param name="state">Interception 的 state 位：bit0=抬起，bit1=E0，bit2=E1</param>
+        /// <returns>虚拟键码；0 表示未知按键</returns>
+        public static int VKeyFromScanCode(int scanCode, int state)
+        {
+            // Pause/Break 是 E1 0x45，和 NumLock（E0 0x45）需要区分开
+            if ((state & 0x04) != 0 && scanCode == 0x45)
             {
-                case 1:
-                    return "按键切换";
-                default:
-                    return "长按连发";
+                return 0x13;
             }
+
+            var isE0 = (state & 0x02) != 0;
+
+            // 部分键盘的 PrintScreen 用 0x54 而不是 0x37
+            if (isE0 && scanCode == 0x54)
+            {
+                return 0x2C;
+            }
+            var maps = EnsureScanMaps();
+
+            var primary = isE0 ? maps[1] : maps[0];
+            var fallback = isE0 ? maps[0] : maps[1];
+
+            int vKey;
+            if (primary.TryGetValue(scanCode, out vKey)) return vKey;
+            if (fallback.TryGetValue(scanCode, out vKey)) return vKey;
+
+            return 0;
+        }
+
+        private static Dictionary<int, int>[] EnsureScanMaps()
+        {
+            var maps = scanMaps;
+            if (maps != null) return maps;
+
+            lock (scanMapLock)
+            {
+                if (scanMaps == null)
+                {
+                    var normal = new Dictionary<int, int>();
+                    var extended = new Dictionary<int, int>();
+
+                    foreach (var pair in keyMap)
+                    {
+                        if (pair.Key == 0xFFFF) continue;
+
+                        var scan = pair.Value.ScanCode;
+                        if (scan <= 0 || scan > 0xFF) continue;
+
+                        var target = IsExtendedKey(pair.Key) ? extended : normal;
+                        if (!target.ContainsKey(scan))
+                        {
+                            target[scan] = pair.Key;
+                        }
+                    }
+
+                    scanMaps = new[] { normal, extended };
+                }
+
+                maps = scanMaps;
+            }
+
+            return maps;
         }
 
         public static AshKey Get(int keycode)

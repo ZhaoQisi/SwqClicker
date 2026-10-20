@@ -5,20 +5,21 @@ namespace AshClicker
 {
     public class AshUtil
     {
-        public static ListViewItem CreateKeyMappingItem(AshKey userPress, AshKey willPress, string modeText, int mode)
+        public static ListViewItem CreateKeyMappingItem(string name, AshKey userPress, AshKey willPress, int mode)
         {
             if (userPress == null || willPress == null)
             {
                 throw new ArgumentNullException("userPress 和 willPress 都不能为 null。");
             }
 
-            // 创建一个 ListViewItem
-            var item = new ListViewItem(userPress.Description);
-            item.SubItems.Add(willPress.Description);
-            item.SubItems.Add(modeText);
+            var press = new AshKeypress(name, userPress, willPress, mode);
+
+            // 第一列：方案名；第二列：紧凑的绑定关系，例如 1|Q|切换
+            var item = new ListViewItem(press.Name);
+            item.SubItems.Add(press.BindingText);
 
             // 绑定自定义 Tag
-            item.Tag = new AshKeypress(userPress, willPress, mode);
+            item.Tag = press;
 
             return item;
         }
