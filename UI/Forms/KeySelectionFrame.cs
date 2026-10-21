@@ -7,10 +7,12 @@ namespace AshClicker
     public partial class KeySelectionFrame : Form
     {
         private readonly ListView mainListView;
+        private readonly bool sameKeyRepeatAvailable;
 
-        public KeySelectionFrame(ListView mainListView)
+        public KeySelectionFrame(ListView mainListView, bool sameKeyRepeatAvailable)
         {
             this.mainListView = mainListView;
+            this.sameKeyRepeatAvailable = sameKeyRepeatAvailable;
             InitializeComponent();
         }
 
@@ -19,6 +21,12 @@ namespace AshClicker
             if (!(textBox1.Tag is AshKey userPress) || !(textBox2.Tag is AshKey willPress))
             {
                 MessageBox.Show("请先选择按键喔 :(");
+                return;
+            }
+
+            if (userPress.VKey == willPress.VKey && !sameKeyRepeatAvailable)
+            {
+                MessageBox.Show("同键连发需要 Interception 驱动，请先安装驱动并重启后再试。");
                 return;
             }
 
@@ -42,9 +50,11 @@ namespace AshClicker
         {
             if (sender is TextBox textBox)
             {
-                textBox.Tag = AshKeyMap.Get(e.KeyValue);
-                textBox.Text = AshKeyMap.Get(e.KeyValue).ShortName;
+                var key = AshKeyMap.Get(e.KeyValue);
+                textBox.Tag = key;
+                textBox.Text = key.ShortName;
                 e.SuppressKeyPress = true;
+                UpdateAddButton();
             }
         }
 
@@ -54,6 +64,24 @@ namespace AshClicker
             textBox1.Tag = null;
             textBox2.Tag = null;
             textBoxName.Text = AshConfigPool.Instance.NextDefaultSchemeName();
+            UpdateAddButton();
+        }
+
+        /// <summary>
+        /// 没有 Interception 驱动时，同键连发会在轮询模式下自己触发自己，
+        /// 因此直接禁用添加按钮，避免用户配置出无法使用的键位。
+        /// </summary>
+        private void UpdateAddButton()
+        {
+            var userPress = textBox1.Tag as AshKey;
+            var willPress = textBox2.Tag as AshKey;
+            var sameKeyBlocked = !sameKeyRepeatAvailable &&
+                                 userPress != null &&
+                                 willPress != null &&
+                                 userPress.VKey == willPress.VKey;
+
+            button1.Enabled = !sameKeyBlocked;
+            button1.Text = sameKeyBlocked ? "同键连发需驱动" : "添加按键";
         }
     }
 }

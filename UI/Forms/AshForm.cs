@@ -349,6 +349,18 @@ namespace AshClicker
                 return;
             }
 
+            if (!SameKeyRepeatAllowed)
+            {
+                foreach (var pair in targets)
+                {
+                    if (pair.Key == pair.Value)
+                    {
+                        MessageBox.Show("同键连发需要 Interception 驱动，当前模式不支持，请安装驱动并重启后再试，或修改键位。");
+                        return;
+                    }
+                }
+            }
+
             AshStopwatch.UsePrecise = preciseDelay.Checked;
 
             keySender.UseInterception = usingInterception;
@@ -598,7 +610,7 @@ namespace AshClicker
 
         private void buttonAddKey_Click(object sender, EventArgs e)
         {
-            new KeySelectionFrame(listView1).Show();
+            new KeySelectionFrame(listView1, SameKeyRepeatAllowed).Show();
         }
 
         private void buttonDeleteKey_Click(object sender, EventArgs e)
@@ -796,6 +808,15 @@ namespace AshClicker
         }
 
         private volatile bool usingInterception = true;
+
+        /// <summary>
+        /// 同键连发只有在 Interception 驱动模式下才可用。
+        /// 无驱动/DD 轮询模式会看到自己注入的键，导致自触发。
+        /// </summary>
+        private bool SameKeyRepeatAllowed
+        {
+            get { return usingInterception && ic != null; }
+        }
 
         private void buttonDriverless_Click(object sender, EventArgs e)
         {
