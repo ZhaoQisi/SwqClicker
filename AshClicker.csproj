@@ -35,6 +35,18 @@
     <Content Include=".github\workflows\build.yml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Resources\按键开启.wav">
+      <Link>Sounds\按键开启.wav</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="Resources\按键关闭.wav">
+      <Link>Sounds\按键关闭.wav</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="Assets\Dll\interception.dll" />
     <EmbeddedResource Include="Assets\Dll\interception.dll" />
   </ItemGroup>

@@ -110,8 +110,11 @@ namespace AshClicker
             return output;
         }
 
-        private SoundPlayer _start;
-        private SoundPlayer _stop;
+        private SoundEffectPlayer _start;
+        private SoundEffectPlayer _stop;
+
+        private static readonly string SoundsDirectory =
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds");
 
         [DllImport("user32.dll")]
         private static extern bool ReleaseCapture();
@@ -171,17 +174,13 @@ namespace AshClicker
             dd = new DdControl();
             keySender.Dd = dd;
 
-            using (var stream = new MemoryStream(Resources.start))
-            {
-                _start = new SoundPlayer(stream);
-                _start.Load();
-            }
+            _start = new SoundEffectPlayer(
+                Path.Combine(SoundsDirectory, "按键开启.wav"),
+                Resources.start);
+            _stop = new SoundEffectPlayer(
+                Path.Combine(SoundsDirectory, "按键关闭.wav"),
+                Resources.stop);
 
-            using (var stream = new MemoryStream(Resources.stop))
-            {
-                _stop = new SoundPlayer(stream);
-                _stop.Load();
-            }
             using (var stream = new MemoryStream(Resources.silence))
             {
                 new SoundPlayer(stream).PlaySync();
@@ -797,6 +796,18 @@ namespace AshClicker
             }
 
             StopClicker();
+
+            if (_start != null)
+            {
+                _start.Dispose();
+                _start = null;
+            }
+
+            if (_stop != null)
+            {
+                _stop.Dispose();
+                _stop = null;
+            }
 
             if (mini != null && !mini.IsDisposed)
             {
