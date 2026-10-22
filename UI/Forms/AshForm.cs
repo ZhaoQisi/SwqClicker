@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Media;
@@ -164,6 +165,39 @@ namespace AshClicker
             }
         }
 
+        /// <summary>
+        /// 背景按 cover 方式铺满窗口：等比放大到覆盖整个客户区，超出部分裁掉。
+        /// 这样不会像 Zoom 那样在上下或左右留下窗体背景色。
+        /// </summary>
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            var image = backgroundSkin == null ? null : backgroundSkin.Image;
+
+            if (image == null)
+            {
+                base.OnPaintBackground(e);
+                return;
+            }
+
+            e.Graphics.Clear(BackColor);
+
+            var target = ClientRectangle;
+            if (target.Width <= 0 || target.Height <= 0) return;
+
+            var scale = Math.Max(
+                (float)target.Width / image.Width,
+                (float)target.Height / image.Height);
+
+            var width = image.Width * scale;
+            var height = image.Height * scale;
+            var left = (target.Width - width) / 2f;
+            var top = (target.Height - height) / 2f;
+
+            e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            e.Graphics.DrawImage(image, left, top, width, height);
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -224,8 +258,6 @@ namespace AshClicker
             if (!backgroundSkin.Refresh()) return;
 
             var image = backgroundSkin.Image;
-            BackgroundImage = image;
-            BackgroundImageLayout = ImageLayout.Zoom;
             ApplyBackgroundTransparency(image != null);
             Invalidate(true);
         }
@@ -859,7 +891,6 @@ namespace AshClicker
 
             backgroundTimer.Stop();
             backgroundTimer.Dispose();
-            BackgroundImage = null;
             backgroundSkin.Dispose();
 
             if (_start != null)

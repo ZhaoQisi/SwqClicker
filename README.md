@@ -77,6 +77,7 @@ Images\background.png
 仓库自带一张 `Images\background.png` 占位背景（810 × 1032），可以直接替换；同目录的 [README.txt](Images/README.txt) 也有说明。
 
 - 程序会自动加载，**不需要重新编译，也不需要重启**；替换文件后约 1 秒自动刷新。
+- 背景会等比铺满整个窗口，比例不一致时会裁掉多余边缘，不会出现上下留白。
 - 推荐 **810 × 1032 PNG**，与当前窗口 405 × 516 同比例。
 - 支持 PNG / JPG / BMP，文件名固定为 `background.png`。
 - 有背景图时，标题栏、Label、CheckBox 会透出背景；Button、TextBox、ListView 仍是实色。
