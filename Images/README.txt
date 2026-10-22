@@ -1,4 +1,4 @@
-background.png 是默认占位背景，可以直接替换。
+background.png 是当前默认背景，可以直接替换。
 
 - 推荐尺寸：810 × 1032（与窗口 405 × 516 同比例）
 - 格式建议：PNG；文件名固定为 background.png

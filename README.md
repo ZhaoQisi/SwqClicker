@@ -74,7 +74,7 @@ Images\background.png
 
 也可以把图片放在项目根目录的 `Images` 文件夹，构建/发布会自动复制到输出目录。
 
-仓库自带一张 `Images\background.png` 占位背景（810 × 1032），可以直接替换；同目录的 [README.txt](Images/README.txt) 也有说明。
+仓库自带一张 `Images\background.png` 默认背景（810 × 1032），可以直接替换；同目录的 [README.txt](Images/README.txt) 也有说明。
 
 - 程序会自动加载，**不需要重新编译，也不需要重启**；替换文件后约 1 秒自动刷新。
 - 背景会等比铺满整个窗口，比例不一致时会裁掉多余边缘，不会出现上下留白。
