@@ -69,7 +69,7 @@ namespace AshClicker
                 Size = new Size(328, 54),
                 ForeColor = SystemColors.GrayText,
                 Text = allowModifiers
-                    ? "Esc 取消；Backspace 清除。\r\n可单独按 Shift/Ctrl/Alt/Win；按住暂停，松开恢复。"
+                    ? "Esc 取消；Backspace 清除。\r\n可单独按 Shift/Ctrl/Alt/Win；\r\n按住暂停键暂停按键功能，松开按键后恢复按键。"
                     : "Esc 取消；Backspace 清除。\r\n建议避免与游戏内按键重复。"
             };
 

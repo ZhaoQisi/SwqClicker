@@ -66,12 +66,12 @@ namespace AshClicker
                 ShowAlways = true
             };
 
-            infoToolTip.SetToolTip(label7, "按住暂停键暂停，松开恢复。");
-            infoToolTip.SetToolTip(buttonPauseHotkey, "按住暂停键暂停，松开恢复。");
+            infoToolTip.SetToolTip(label7, "按住暂停键暂停按键功能，松开按键后恢复按键。");
+            infoToolTip.SetToolTip(buttonPauseHotkey, "按住暂停键暂停按键功能，松开按键后恢复按键。");
 
             pauseInfoIcon = new CircleExclamation { Visible = false };
             Controls.Add(pauseInfoIcon);
-            infoToolTip.SetToolTip(pauseInfoIcon, "按住暂停键暂停，松开恢复。");
+            infoToolTip.SetToolTip(pauseInfoIcon, "按住暂停键暂停按键功能，松开按键后恢复按键。");
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
