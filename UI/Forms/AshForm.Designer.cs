@@ -59,7 +59,6 @@ namespace AshClicker
             this.buttonToggleHotkey = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.buttonPauseHotkey = new System.Windows.Forms.Button();
-            this.label8 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // buttonLoadDriver
@@ -269,15 +268,6 @@ namespace AshClicker
             this.buttonPauseHotkey.UseVisualStyleBackColor = true;
             this.buttonPauseHotkey.Click += new System.EventHandler(this.buttonPauseHotkey_Click);
             // 
-            // label8
-            // 
-            this.label8.ForeColor = System.Drawing.SystemColors.GrayText;
-            this.label8.Location = new System.Drawing.Point(17, 482);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(372, 26);
-            this.label8.TabIndex = 22;
-            this.label8.Text = "开启后映射键被拦截；按住暂停键暂停。";
-            // 
             // titleBar
             // 
             this.titleBar.BackColor = System.Drawing.Color.FromArgb(250, 250, 250);
@@ -347,7 +337,6 @@ namespace AshClicker
             this.titleBar.Controls.Add(this.buttonMinimize);
             this.titleBar.Controls.Add(this.buttonClose);
             this.Controls.Add(this.titleBar);
-            this.Controls.Add(this.label8);
             this.Controls.Add(this.buttonPauseHotkey);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.buttonToggleHotkey);
@@ -391,7 +380,6 @@ namespace AshClicker
         private System.Windows.Forms.Button buttonToggleHotkey;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Button buttonPauseHotkey;
-        private System.Windows.Forms.Label label8;
 
         private System.Windows.Forms.Button button1;
 

@@ -66,10 +66,10 @@ namespace AshClicker
             _tipLabel = new Label
             {
                 Location = new Point(16, 92),
-                Size = new Size(328, 42),
+                Size = new Size(328, 54),
                 ForeColor = SystemColors.GrayText,
                 Text = allowModifiers
-                    ? "Esc 取消；Backspace 清除。\r\n可以单独按 Shift / Ctrl / Alt / Win 作为暂停键。"
+                    ? "Esc 取消；Backspace 清除。\r\n可单独按 Shift/Ctrl/Alt/Win；按住暂停，松开恢复。"
                     : "Esc 取消；Backspace 清除。\r\n建议避免与游戏内按键重复。"
             };
 
