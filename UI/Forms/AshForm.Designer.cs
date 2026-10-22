@@ -256,7 +256,7 @@ namespace AshClicker
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(108, 22);
             this.label7.TabIndex = 20;
-            this.label7.Text = "暂停键！";
+            this.label7.Text = "暂停键";
             // 
             // buttonPauseHotkey
             // 

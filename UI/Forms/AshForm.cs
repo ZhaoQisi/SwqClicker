@@ -34,6 +34,7 @@ namespace AshClicker
         private MiniStatusForm mini;
         private Panel listHeaderDivider;
         private ToolTip infoToolTip;
+        private CircleExclamation pauseInfoIcon;
 
         public AshForm()
         {
@@ -67,6 +68,10 @@ namespace AshClicker
 
             infoToolTip.SetToolTip(label7, "按住暂停键暂停，松开恢复。");
             infoToolTip.SetToolTip(buttonPauseHotkey, "按住暂停键暂停，松开恢复。");
+
+            pauseInfoIcon = new CircleExclamation { Visible = false };
+            Controls.Add(pauseInfoIcon);
+            infoToolTip.SetToolTip(pauseInfoIcon, "按住暂停键暂停，松开恢复。");
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
@@ -239,6 +244,17 @@ namespace AshClicker
 
         private void AshForm_Load(object sender, EventArgs e)
         {
+            // 代码添加的控件不参与设计器字体缩放，按实际字体/尺寸放到“暂停键”文字后面。
+            var iconSize = Math.Max(16, label7.Height - 2);
+            pauseInfoIcon.Size = new Size(iconSize, iconSize);
+            pauseInfoIcon.Font = new Font(label7.Font.FontFamily, label7.Font.Size, FontStyle.Bold);
+            var textWidth = TextRenderer.MeasureText(label7.Text, label7.Font).Width;
+            pauseInfoIcon.Location = new Point(
+                label7.Left + textWidth + 4,
+                label7.Top + (label7.Height - iconSize) / 2);
+            pauseInfoIcon.Visible = true;
+            pauseInfoIcon.BringToFront();
+
             RefreshBackground();
             backgroundTimer.Start();
 
