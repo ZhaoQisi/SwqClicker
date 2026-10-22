@@ -179,7 +179,9 @@ namespace AshClicker
                 return;
             }
 
-            e.Graphics.Clear(BackColor);
+            // 半透明背景叠加在白底上，保留图片本身的透明度，
+            // 避免直接用窗体灰色背景导致颜色发暗或发灰。
+            e.Graphics.Clear(Color.White);
 
             var target = ClientRectangle;
             if (target.Width <= 0 || target.Height <= 0) return;
