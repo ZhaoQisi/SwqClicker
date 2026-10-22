@@ -45,6 +45,12 @@ namespace AshClicker
             Console.WriteLine($"Informational Version: {infoVersion}");
             InitializeComponent();
 
+            backgroundSkin = new BackgroundSkin(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
+            backgroundTimer = new Timer { Interval = 1000 };
+            backgroundTimer.Tick += (s, e) => RefreshBackground();
+            DoubleBuffered = true;
+
             keySender = new KeySender();
             engine = new ClickerEngine(keySender);
             engine.PauseChanged += Engine_PauseChanged;
@@ -113,6 +119,10 @@ namespace AshClicker
         private SoundEffectPlayer _start;
         private SoundEffectPlayer _stop;
 
+        private readonly BackgroundSkin backgroundSkin;
+        private readonly Timer backgroundTimer;
+        private bool backgroundTransparent;
+
         private static readonly string SoundsDirectory =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Sounds");
 
@@ -166,6 +176,9 @@ namespace AshClicker
 
         private void AshForm_Load(object sender, EventArgs e)
         {
+            RefreshBackground();
+            backgroundTimer.Start();
+
             if (Icon != null)
             {
                 titleIcon.Image = Icon.ToBitmap();
@@ -200,6 +213,53 @@ namespace AshClicker
 
             UpdateHotkeyButtons();
             ApplyToggleHotkey();
+        }
+
+        /// <summary>
+        /// 读取或刷新 Images\background.png。文件变化后无需重启程序。
+        /// </summary>
+        private void RefreshBackground()
+        {
+            if (IsDisposed || Disposing) return;
+            if (!backgroundSkin.Refresh()) return;
+
+            var image = backgroundSkin.Image;
+            BackgroundImage = image;
+            BackgroundImageLayout = ImageLayout.Zoom;
+            ApplyBackgroundTransparency(image != null);
+            Invalidate(true);
+        }
+
+        /// <summary>
+        /// 有背景图时让标题栏、Label 和 CheckBox 透出背景。
+        /// Button、TextBox、ListView 保持实色，避免影响可读性和交互。
+        /// </summary>
+        private void ApplyBackgroundTransparency(bool hasImage)
+        {
+            if (hasImage == backgroundTransparent) return;
+            backgroundTransparent = hasImage;
+
+            titleBar.BackColor = hasImage
+                ? Color.Transparent
+                : Color.FromArgb(250, 250, 250);
+
+            SetTransparentLabels(this);
+        }
+
+        private static void SetTransparentLabels(Control parent)
+        {
+            foreach (Control child in parent.Controls)
+            {
+                if (child is Label || child is CheckBox)
+                {
+                    child.BackColor = Color.Transparent;
+                }
+
+                if (child.HasChildren)
+                {
+                    SetTransparentLabels(child);
+                }
+            }
         }
 
         [DllImport("user32.dll")]
@@ -796,6 +856,11 @@ namespace AshClicker
             }
 
             StopClicker();
+
+            backgroundTimer.Stop();
+            backgroundTimer.Dispose();
+            BackgroundImage = null;
+            backgroundSkin.Dispose();
 
             if (_start != null)
             {
