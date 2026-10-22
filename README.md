@@ -57,10 +57,12 @@ Sounds\按键关闭.wav
 
 直接替换这两个文件即可，**不需要重新编译，也不需要重启程序**；下一次开启/关闭按键时会自动使用新文件。
 
+仓库和构建输出里都自带 `Sounds` 文件夹，里面现在的两个 WAV 是默认语音占位文件，可以直接替换；同目录的 [README.txt](Sounds/README.txt) 也有说明。
+
 - 只支持 WAV 格式；文件不存在、损坏或不是有效 WAV 时，会自动回退到内置音效。
-- `dotnet build` / `dotnet publish` 会把默认音效复制到输出目录的 `Sounds` 文件夹。
+- `dotnet build` / `dotnet publish` 会把 `Sounds` 文件夹复制到输出目录。
 - 如果只拿到一个 exe，没有 `Sounds` 文件夹时，程序仍然使用内置音效。
-- 发布压缩包时请把 `Sounds` 文件夹和 exe 放在一起，否则用户只能使用内置音效。
+- 发布压缩包时请把 `Sounds` 和 `Images` 文件夹和 exe 放在一起。
 
 ## 自定义背景
 
@@ -71,6 +73,8 @@ Images\background.png
 ```
 
 也可以把图片放在项目根目录的 `Images` 文件夹，构建/发布会自动复制到输出目录。
+
+仓库自带一张 `Images\background.png` 占位背景（810 × 1032），可以直接替换；同目录的 [README.txt](Images/README.txt) 也有说明。
 
 - 程序会自动加载，**不需要重新编译，也不需要重启**；替换文件后约 1 秒自动刷新。
 - 推荐 **810 × 1032 PNG**，与当前窗口 405 × 516 同比例。
