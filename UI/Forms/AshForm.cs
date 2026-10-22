@@ -33,7 +33,6 @@ namespace AshClicker
         private readonly List<int> _activeSchemes = new List<int>();
         private MiniStatusForm mini;
         private Panel listHeaderDivider;
-        private Label infoLabel;
         private ToolTip infoToolTip;
 
         public AshForm()
@@ -66,23 +65,8 @@ namespace AshClicker
                 ShowAlways = true
             };
 
-            infoLabel = new Label
-            {
-                Text = "!",
-                Font = new Font(Font.FontFamily, 10F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(90, 90, 90),
-                BackColor = Color.Transparent,
-                Location = new Point(17, 482),
-                Size = new Size(20, 26),
-                TextAlign = ContentAlignment.MiddleCenter,
-                Cursor = Cursors.Help
-            };
-            Controls.Add(infoLabel);
-            infoLabel.BringToFront();
-
-            infoToolTip.SetToolTip(infoLabel, "开启后映射键被拦截；按住暂停键暂停，松开恢复。");
-            infoToolTip.SetToolTip(buttonPauseHotkey, "设置暂停键：按住暂停键暂停，松开恢复。");
-            infoToolTip.SetToolTip(buttonSwitchEnable, "开启/关闭连发；开启后映射键会被拦截。");
+            infoToolTip.SetToolTip(label7, "按住暂停键暂停，松开恢复。");
+            infoToolTip.SetToolTip(buttonPauseHotkey, "按住暂停键暂停，松开恢复。");
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
@@ -255,14 +239,6 @@ namespace AshClicker
 
         private void AshForm_Load(object sender, EventArgs e)
         {
-            // 代码添加的控件不会参与设计器的字体缩放，这里按实际尺寸放到暂停键下方。
-            infoLabel.Location = new Point(
-                label7.Left,
-                Math.Min(
-                    buttonPauseHotkey.Bottom + 8,
-                    ClientSize.Height - infoLabel.Height - 4));
-            infoLabel.BringToFront();
-
             RefreshBackground();
             backgroundTimer.Start();
 
