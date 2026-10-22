@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
+using System.Windows.Forms;
 
 namespace AshClicker
 {
@@ -113,6 +115,46 @@ namespace AshClicker
                 _lastWriteUtc = writeUtc;
                 _lastLength = length;
                 return true;
+            }
+        }
+
+        /// <summary>
+        /// 按 cover 方式把图片绘制到目标区域：等比放大到覆盖整个区域，超出部分裁掉。
+        /// </summary>
+        public static void DrawCover(Graphics graphics, Image image, Rectangle target)
+        {
+            if (graphics == null || image == null || target.Width <= 0 || target.Height <= 0) return;
+
+            var scale = Math.Max(
+                (float)target.Width / image.Width,
+                (float)target.Height / image.Height);
+
+            var width = image.Width * scale;
+            var height = image.Height * scale;
+            var left = target.Left + (target.Width - width) / 2f;
+            var top = target.Top + (target.Height - height) / 2f;
+
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.DrawImage(image, left, top, width, height);
+        }
+
+        /// <summary>让窗体里的 Label、CheckBox 透出背景。</summary>
+        public static void SetLabelsTransparent(Control parent)
+        {
+            if (parent == null) return;
+
+            foreach (Control child in parent.Controls)
+            {
+                if (child is Label || child is CheckBox)
+                {
+                    child.BackColor = Color.Transparent;
+                }
+
+                if (child.HasChildren)
+                {
+                    SetLabelsTransparent(child);
+                }
             }
         }
 

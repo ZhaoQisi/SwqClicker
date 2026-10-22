@@ -82,6 +82,7 @@ Images\background.png
 - 支持 PNG / JPG / BMP，文件名固定为 `background.png`。
 - 半透明 PNG 会叠加在白色底上，保留原有的透明效果，不会把颜色强行加深。
 - 有背景图时，标题栏、Label、CheckBox 会透出背景；Button、TextBox、ListView 仍是实色。
+- “设置快捷键”窗口的客户区也会使用同一张背景图，Windows 自带的系统标题栏保持原样。
 - 图片不存在、损坏或不是有效图片时，使用默认背景。
 - 建议使用偏亮、低对比度的图；图片太暗时，黑色文字可能看不清。
 

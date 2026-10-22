@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Media;
@@ -183,21 +182,7 @@ namespace AshClicker
             // 避免直接用窗体灰色背景导致颜色发暗或发灰。
             e.Graphics.Clear(Color.White);
 
-            var target = ClientRectangle;
-            if (target.Width <= 0 || target.Height <= 0) return;
-
-            var scale = Math.Max(
-                (float)target.Width / image.Width,
-                (float)target.Height / image.Height);
-
-            var width = image.Width * scale;
-            var height = image.Height * scale;
-            var left = (target.Width - width) / 2f;
-            var top = (target.Height - height) / 2f;
-
-            e.Graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            e.Graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            e.Graphics.DrawImage(image, left, top, width, height);
+            BackgroundSkin.DrawCover(e.Graphics, image, ClientRectangle);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -277,23 +262,7 @@ namespace AshClicker
                 ? Color.Transparent
                 : Color.FromArgb(250, 250, 250);
 
-            SetTransparentLabels(this);
-        }
-
-        private static void SetTransparentLabels(Control parent)
-        {
-            foreach (Control child in parent.Controls)
-            {
-                if (child is Label || child is CheckBox)
-                {
-                    child.BackColor = Color.Transparent;
-                }
-
-                if (child.HasChildren)
-                {
-                    SetTransparentLabels(child);
-                }
-            }
+            BackgroundSkin.SetLabelsTransparent(this);
         }
 
         [DllImport("user32.dll")]

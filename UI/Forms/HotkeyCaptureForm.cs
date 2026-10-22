@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace AshClicker
@@ -14,6 +15,9 @@ namespace AshClicker
         private readonly Label _hintLabel;
         private readonly Label _tipLabel;
         private readonly bool _allowModifiers;
+        private readonly BackgroundSkin _backgroundSkin;
+        private readonly Timer _backgroundTimer;
+        private bool _backgroundTransparent;
 
         public HotkeyCaptureForm(int currentKey, bool allowModifiers)
         {
@@ -28,6 +32,12 @@ namespace AshClicker
             TopMost = true;
             KeyPreview = true;
             ClientSize = new Size(360, 150);
+            DoubleBuffered = true;
+
+            _backgroundSkin = new BackgroundSkin(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
+            _backgroundTimer = new Timer { Interval = 1000 };
+            _backgroundTimer.Tick += (s, e) => RefreshBackground();
 
             try
             {
@@ -73,11 +83,58 @@ namespace AshClicker
         /// <summary>选中的虚拟键码，0 表示清除。</summary>
         public int SelectedKey { get; private set; }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            RefreshBackground();
+            _backgroundTimer.Start();
+        }
+
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
             Activate();
             Focus();
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            _backgroundTimer.Stop();
+            _backgroundTimer.Dispose();
+            _backgroundSkin.Dispose();
+            base.OnFormClosed(e);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            var image = _backgroundSkin == null ? null : _backgroundSkin.Image;
+
+            if (image == null)
+            {
+                base.OnPaintBackground(e);
+                return;
+            }
+
+            e.Graphics.Clear(Color.White);
+            BackgroundSkin.DrawCover(e.Graphics, image, ClientRectangle);
+        }
+
+        private void RefreshBackground()
+        {
+            if (IsDisposed || Disposing) return;
+            if (!_backgroundSkin.Refresh()) return;
+
+            var hasImage = _backgroundSkin.Image != null;
+            if (hasImage != _backgroundTransparent)
+            {
+                _backgroundTransparent = hasImage;
+                if (hasImage)
+                {
+                    BackgroundSkin.SetLabelsTransparent(this);
+                }
+            }
+
+            Invalidate(true);
         }
 
         private void HotkeyForm_KeyDown(object sender, KeyEventArgs e)
