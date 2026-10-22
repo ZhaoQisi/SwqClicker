@@ -32,6 +32,7 @@ namespace AshClicker
         private int _registeredToggleKey;
         private readonly List<int> _activeSchemes = new List<int>();
         private MiniStatusForm mini;
+        private Panel listHeaderDivider;
 
         public AshForm()
         {
@@ -44,6 +45,16 @@ namespace AshClicker
 
             Console.WriteLine($"Informational Version: {infoVersion}");
             InitializeComponent();
+
+            listHeaderDivider = new Panel
+            {
+                Height = 2,
+                BackColor = Color.FromArgb(140, 140, 140),
+                Enabled = false,
+                TabStop = false,
+                Visible = false
+            };
+            Controls.Add(listHeaderDivider);
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
@@ -132,6 +143,19 @@ namespace AshClicker
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        private const int LVM_GETHEADER = 0x101F;
         private const int WM_NCLBUTTONDOWN = 0xA1;
         private const int HTCAPTION = 2;
 
@@ -229,7 +253,12 @@ namespace AshClicker
 
             AshConfigPool.Instance.LoadToList(listView1);
             FitListColumns();
-            listView1.ClientSizeChanged += (cs, ce) => FitListColumns();
+            UpdateListHeaderDivider();
+            listView1.ClientSizeChanged += (cs, ce) =>
+            {
+                FitListColumns();
+                UpdateListHeaderDivider();
+            };
 
             var pressDelay = AshConfigPool.Instance.PressDelay;
             var releaseDelay = AshConfigPool.Instance.ReleaseDelay;
@@ -288,6 +317,44 @@ namespace AshClicker
             if (listView1.Columns.Count < 2) return;
 
             listView1.Columns[1].Width = -2;
+        }
+
+        /// <summary>
+        /// ListView 原生表头和内容之间没有明显的分隔线，
+        /// 这里按实际表头底部位置叠一条 1px 的线。
+        /// </summary>
+        private void UpdateListHeaderDivider()
+        {
+            if (listHeaderDivider == null || listView1 == null ||
+                listView1.IsDisposed || !listView1.IsHandleCreated)
+            {
+                return;
+            }
+
+            var header = SendMessage(listView1.Handle, LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+            RECT headerRect;
+
+            if (header == IntPtr.Zero || !GetWindowRect(header, out headerRect))
+            {
+                listHeaderDivider.Visible = false;
+                return;
+            }
+
+            var headerBottom = PointToClient(new Point(headerRect.Left, headerRect.Bottom)).Y;
+
+            if (headerBottom <= listView1.Top || headerBottom >= listView1.Bottom)
+            {
+                listHeaderDivider.Visible = false;
+                return;
+            }
+
+            listHeaderDivider.Bounds = new Rectangle(
+                listView1.Left,
+                headerBottom,
+                listView1.Width,
+                2);
+            listHeaderDivider.Visible = true;
+            listHeaderDivider.BringToFront();
         }
 
         /// <summary>连发循环的每一拍：驱动模式下由拦截线程更新状态，这里只负责发送；DD 模式需要自己轮询。</summary>
@@ -571,6 +638,8 @@ namespace AshClicker
             {
                 HideMiniStatus();
             }
+
+            UpdateListHeaderDivider();
         }
 
         private void ShowMiniStatus()
