@@ -165,8 +165,8 @@ namespace AshClicker
         }
 
         /// <summary>
-        /// 背景按 cover 方式铺满窗口：等比放大到覆盖整个客户区，超出部分裁掉。
-        /// 这样不会像 Zoom 那样在上下或左右留下窗体背景色。
+        /// 背景只绘制在标题栏下方的内容区，等比覆盖并底部对齐，
+        /// 顶部超出部分裁掉，不拉伸变形。
         /// </summary>
         protected override void OnPaintBackground(PaintEventArgs e)
         {
@@ -182,7 +182,13 @@ namespace AshClicker
             // 避免直接用窗体灰色背景导致颜色发暗或发灰。
             e.Graphics.Clear(Color.White);
 
-            BackgroundSkin.DrawCover(e.Graphics, image, ClientRectangle);
+            var target = new Rectangle(
+                0,
+                titleBar.Height,
+                ClientSize.Width,
+                ClientSize.Height - titleBar.Height);
+
+            BackgroundSkin.DrawCover(e.Graphics, image, target);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -258,9 +264,8 @@ namespace AshClicker
             if (hasImage == backgroundTransparent) return;
             backgroundTransparent = hasImage;
 
-            titleBar.BackColor = hasImage
-                ? Color.Transparent
-                : Color.FromArgb(250, 250, 250);
+            // 标题栏保持实色，背景只从标题栏下方开始。
+            titleBar.BackColor = Color.FromArgb(250, 250, 250);
 
             BackgroundSkin.SetLabelsTransparent(this);
         }

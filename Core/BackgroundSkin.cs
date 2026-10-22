@@ -119,7 +119,8 @@ namespace AshClicker
         }
 
         /// <summary>
-        /// 按 cover 方式把图片绘制到目标区域：等比放大到覆盖整个区域，超出部分裁掉。
+        /// 按 cover 方式把图片绘制到目标区域：等比缩放到覆盖整个区域，
+        /// 顶部超出部分裁掉，底部对齐。不会拉伸变形。
         /// </summary>
         public static void DrawCover(Graphics graphics, Image image, Rectangle target)
         {
@@ -132,7 +133,7 @@ namespace AshClicker
             var width = image.Width * scale;
             var height = image.Height * scale;
             var left = target.Left + (target.Width - width) / 2f;
-            var top = target.Top + (target.Height - height) / 2f;
+            var top = target.Bottom - height;
 
             graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;

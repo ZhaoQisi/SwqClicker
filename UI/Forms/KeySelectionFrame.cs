@@ -1,4 +1,6 @@
 using System;
+using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace AshClicker
@@ -8,12 +10,21 @@ namespace AshClicker
     {
         private readonly ListView mainListView;
         private readonly bool sameKeyRepeatAvailable;
+        private readonly BackgroundSkin backgroundSkin;
+        private readonly Timer backgroundTimer;
+        private bool backgroundTransparent;
 
         public KeySelectionFrame(ListView mainListView, bool sameKeyRepeatAvailable)
         {
             this.mainListView = mainListView;
             this.sameKeyRepeatAvailable = sameKeyRepeatAvailable;
             InitializeComponent();
+
+            backgroundSkin = new BackgroundSkin(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
+            backgroundTimer = new Timer { Interval = 1000 };
+            backgroundTimer.Tick += (s, e) => RefreshBackground();
+            DoubleBuffered = true;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -65,6 +76,48 @@ namespace AshClicker
             textBox2.Tag = null;
             textBoxName.Text = AshConfigPool.Instance.NextDefaultSchemeName();
             UpdateAddButton();
+            RefreshBackground();
+            backgroundTimer.Start();
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            var image = backgroundSkin == null ? null : backgroundSkin.Image;
+
+            if (image == null)
+            {
+                base.OnPaintBackground(e);
+                return;
+            }
+
+            e.Graphics.Clear(Color.White);
+            BackgroundSkin.DrawCover(e.Graphics, image, ClientRectangle);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            backgroundTimer.Stop();
+            backgroundTimer.Dispose();
+            backgroundSkin.Dispose();
+            base.OnFormClosed(e);
+        }
+
+        private void RefreshBackground()
+        {
+            if (IsDisposed || Disposing) return;
+            if (!backgroundSkin.Refresh()) return;
+
+            var hasImage = backgroundSkin.Image != null;
+            if (hasImage != backgroundTransparent)
+            {
+                backgroundTransparent = hasImage;
+                if (hasImage)
+                {
+                    BackgroundSkin.SetLabelsTransparent(this);
+                }
+            }
+
+            Invalidate(true);
         }
 
         /// <summary>
