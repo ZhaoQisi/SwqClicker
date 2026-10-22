@@ -71,7 +71,6 @@ namespace AshClicker
 
             pauseInfoIcon = new CircleExclamation { Visible = false };
             Controls.Add(pauseInfoIcon);
-            infoToolTip.SetToolTip(pauseInfoIcon, "按住暂停键暂停按键功能，松开按键后恢复按键。");
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
@@ -254,6 +253,9 @@ namespace AshClicker
                 label7.Top + (label7.Height - iconSize) / 2);
             pauseInfoIcon.Visible = true;
             pauseInfoIcon.BringToFront();
+
+            // 等图标显示、句柄创建后再绑定，避免沿用旧 Tooltip 文案。
+            infoToolTip.SetToolTip(pauseInfoIcon, "按住暂停键暂停按键功能，松开按键后恢复按键。");
 
             RefreshBackground();
             backgroundTimer.Start();
