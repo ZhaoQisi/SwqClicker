@@ -21,6 +21,7 @@ namespace AshClicker
     /// 状态约定：
     ///   - 长按连发（mode 0）：物理键按住期间持续发送映射键，松开即停；
     ///   - 按键切换（mode 1）：按一下开始持续发送，再按一下停止；
+    ///   - 单键连发：同一时间只有一个按键处于连发状态，切换到另一个按键时上一个停止；
     ///   - 暂停：按住暂停键期间停止一切发送，期间按键原样放行给系统；
     ///           松开暂停键立刻恢复，之前处于连发/切换状态的键会继续。
     ///           暂停键本身是修饰键（Alt/Ctrl/Shift/Win）时直接放行，避免 Alt+Tab 之类的组合失效。
@@ -136,7 +137,7 @@ namespace AshClicker
             bool pauseChanged = false;
             bool paused = false;
             int activated = 0;
-            int deactivated = 0;
+            var deactivated = new List<int>();
             bool swallow;
 
             lock (_sync)
@@ -178,16 +179,20 @@ namespace AshClicker
                         {
                             if (_latched.Remove(vKey))
                             {
-                                deactivated = vKey;
+                                deactivated.Add(vKey);
                             }
                             else
                             {
+                                // 切换到新按键时，上一个按键立即停止连发。
+                                DeactivateOthersLocked(vKey, deactivated);
                                 _latched.Add(vKey);
                                 activated = vKey;
                             }
                         }
                         else
                         {
+                            // 长按模式同样只保留最新按下的按键。
+                            DeactivateOthersLocked(vKey, deactivated);
                             _held.Add(vKey);
                             activated = vKey;
                         }
@@ -204,17 +209,56 @@ namespace AshClicker
                 PauseChanged(paused);
             }
 
+            foreach (var key in deactivated)
+            {
+                if (SchemeStateChanged != null)
+                {
+                    SchemeStateChanged(key, false);
+                }
+            }
+
             if (activated != 0 && SchemeStateChanged != null)
             {
                 SchemeStateChanged(activated, true);
             }
 
-            if (deactivated != 0 && SchemeStateChanged != null)
+            return swallow;
+        }
+
+        /// <summary>
+        /// 让除 keepVKey 以外的所有连发/切换按键停止。
+        /// 不会动物理按下状态和吞键状态，松开旧键时仍能正常处理。
+        /// </summary>
+        private void DeactivateOthersLocked(int keepVKey, List<int> deactivated)
+        {
+            var others = new List<int>();
+
+            foreach (var key in _held)
             {
-                SchemeStateChanged(deactivated, false);
+                if (key != keepVKey)
+                {
+                    others.Add(key);
+                }
             }
 
-            return swallow;
+            foreach (var key in _latched)
+            {
+                if (key != keepVKey)
+                {
+                    others.Add(key);
+                }
+            }
+
+            foreach (var key in others)
+            {
+                _held.Remove(key);
+                _latched.Remove(key);
+
+                if (!deactivated.Contains(key))
+                {
+                    deactivated.Add(key);
+                }
+            }
         }
 
         /// <summary>
