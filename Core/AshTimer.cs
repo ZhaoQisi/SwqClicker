@@ -90,7 +90,11 @@ namespace AshClicker
                 {
                     try
                     {
-                        _clickerTask.Wait();
+                        // 驱动发送异常时不能让 UI 永远卡在关闭等待里。
+                        if (!_clickerTask.Wait(2000))
+                        {
+                            Console.WriteLine("Clicker task did not stop in time.");
+                        }
                     }
                     catch (AggregateException)
                     {

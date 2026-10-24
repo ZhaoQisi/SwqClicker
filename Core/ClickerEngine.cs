@@ -10,6 +10,9 @@ namespace AshClicker
     {
         /// <summary>按下并抬起一个按键，按住时长由 holdMilliseconds 决定。</summary>
         void Tap(int vKey, int holdMilliseconds);
+
+        /// <summary>补发所有已按下但未抬起的输出键。</summary>
+        void ReleaseAll();
     }
 
     /// <summary>
@@ -74,6 +77,9 @@ namespace AshClicker
         {
             if (targets == null) throw new ArgumentNullException("targets");
 
+            // 上一次运行如果留下按下的输出键，开始前先清掉。
+            _sender.ReleaseAll();
+
             lock (_sync)
             {
                 _targets.Clear();
@@ -112,6 +118,16 @@ namespace AshClicker
                 _enabled = false;
                 ResetStateLocked();
                 _paused = false;
+            }
+
+            // 停止后必须补发抬起，否则正在发送的按键会一直卡在按下状态。
+            try
+            {
+                _sender.ReleaseAll();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Release all failed: " + ex.Message);
             }
 
             if (wasPaused && PauseChanged != null)

@@ -567,14 +567,23 @@ namespace AshClicker
 
         private void StopClicker()
         {
-            if (!started) return;
+            if (!started)
+            {
+                keySender.EmergencyReleaseAll();
+                return;
+            }
 
             started = false;
 
-            // 先停用引擎：拦截线程随后收到的按键会原样放行，不会卡住键盘
+            // 先做一次不等锁的紧急抬起，防止界面线程随后等待发送线程。
+            keySender.EmergencyReleaseAll();
+
+            // 先停用引擎：拦截线程随后收到的按键会原样放行，不会卡住键盘。
+            // engine.Stop() 内部还会补发一次正常抬起。
             engine.Stop();
 
             AshTimer.Instance.Stop();
+            keySender.ReleaseAll();
 
             if (listener != null)
             {
@@ -963,6 +972,10 @@ namespace AshClicker
             }
 
             StopClicker();
+
+            // 即使没有处于“开启”状态，也把可能残留的按下键释放掉。
+            keySender.EmergencyReleaseAll();
+            keySender.ReleaseAll();
 
             backgroundTimer.Stop();
             backgroundTimer.Dispose();
