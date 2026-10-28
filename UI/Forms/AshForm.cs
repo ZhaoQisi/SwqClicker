@@ -421,10 +421,18 @@ namespace AshClicker
         {
             if (profileTabs == null || listView1 == null) return;
 
+            // 标签栏至少 30px 高，保证文字不被边框裁掉。
             var top = buttonSwitchEnable.Bottom;
-            var height = Math.Max(22, listView1.Top - top - 2);
-            profileTabs.Bounds = new Rectangle(listView1.Left, top, listView1.Width, height);
+            profileTabs.Bounds = new Rectangle(listView1.Left, top, listView1.Width, 30);
+
+            // 列表下移到标签栏下方，底部仍贴着添加/删除按钮，保持整体布局。
+            var listTop = profileTabs.Bottom + 2;
+            var listBottom = buttonAddKey.Top - 6;
+            var listHeight = Math.Max(60, listBottom - listTop);
+            listView1.Bounds = new Rectangle(listView1.Left, listTop, listView1.Width, listHeight);
+
             profileTabs.BringToFront();
+            UpdateListHeaderDivider();
         }
 
         private void LoadActiveProfileToList()
@@ -464,7 +472,8 @@ namespace AshClicker
             }
 
             var profiles = AshConfigPool.Instance.Profiles;
-            var tabHeight = Math.Max(18, profileTabs.Height - 4);
+            // 至少留出文字高度 + 上下边距，避免标题被裁成一半。
+            var tabHeight = Math.Max(24, profileTabs.Height - 4);
             for (var i = 0; i < profiles.Count; i++)
             {
                 var index = i;
@@ -487,8 +496,8 @@ namespace AshClicker
                 };
                 tab.FlatAppearance.BorderSize = 0;
                 tab.Click += ProfileTab_Click;
-                tab.DoubleClick += ProfileTab_DoubleClick;
-                profileTabToolTip.SetToolTip(tab, name + "\r\n双击重命名配置");
+                tab.MouseUp += ProfileTab_MouseUp;
+                profileTabToolTip.SetToolTip(tab, name + "\r\n右键重命名配置");
                 profileTabs.Controls.Add(tab);
             }
 
@@ -529,12 +538,15 @@ namespace AshClicker
                 if (tab == null || !(tab.Tag is int index) || index < 0) continue;
 
                 var selected = index == active;
+                // 选中态用背景色区分，不用边框挤压文字。
                 tab.BackColor = selected
-                    ? Color.FromArgb(255, 252, 252)
+                    ? Color.FromArgb(255, 248, 248)
                     : Color.FromArgb(240, 230, 230);
-                tab.ForeColor = Color.FromArgb(55, 55, 55);
+                tab.ForeColor = selected
+                    ? Color.FromArgb(120, 45, 45)
+                    : Color.FromArgb(70, 60, 60);
                 tab.FlatAppearance.BorderSize = selected ? 1 : 0;
-                tab.FlatAppearance.BorderColor = Color.FromArgb(200, 140, 140);
+                tab.FlatAppearance.BorderColor = Color.FromArgb(225, 185, 185);
             }
         }
 
@@ -552,13 +564,18 @@ namespace AshClicker
             UpdateProfileTabSelection();
         }
 
-        private void ProfileTab_DoubleClick(object sender, EventArgs e)
+        private void ProfileTab_MouseUp(object sender, MouseEventArgs e)
         {
-            if (started) return;
+            if (e.Button != MouseButtons.Right || started) return;
 
             var tab = sender as Button;
             if (tab == null || !(tab.Tag is int index)) return;
 
+            ShowRenameProfileDialog(index);
+        }
+
+        private void ShowRenameProfileDialog(int index)
+        {
             var profiles = AshConfigPool.Instance.Profiles;
             if (index < 0 || index >= profiles.Count) return;
 
