@@ -684,14 +684,10 @@ namespace AshClicker
             if (profiles.Count <= 1) return;
 
             var profile = AshConfigPool.Instance.ActiveProfile;
-            var result = MessageBox.Show(
-                "确定删除配置「" + profile.Name + "」吗？\r\n该配置下的所有键位都会一起删除。",
-                "删除配置",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning,
-                MessageBoxDefaultButton.Button2);
-
-            if (result != DialogResult.Yes) return;
+            using (var confirm = new ConfirmDeleteProfileForm(profile.Name))
+            {
+                if (confirm.ShowDialog(this) != DialogResult.Yes) return;
+            }
 
             if (AshConfigPool.Instance.DeleteActiveProfile())
             {
@@ -1177,7 +1173,8 @@ namespace AshClicker
 
         private void buttonAddKey_Click(object sender, EventArgs e)
         {
-            new KeySelectionFrame(listView1, SameKeyRepeatAllowed).Show();
+            var frame = new KeySelectionFrame(listView1, SameKeyRepeatAllowed);
+            frame.Show(this);
         }
 
         private void buttonDeleteKey_Click(object sender, EventArgs e)

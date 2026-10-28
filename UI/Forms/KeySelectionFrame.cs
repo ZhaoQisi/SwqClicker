@@ -19,6 +19,7 @@ namespace AshClicker
             this.mainListView = mainListView;
             this.sameKeyRepeatAvailable = sameKeyRepeatAvailable;
             InitializeComponent();
+            StartPosition = FormStartPosition.CenterParent;
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
