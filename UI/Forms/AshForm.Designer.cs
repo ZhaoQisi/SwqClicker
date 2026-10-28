@@ -139,10 +139,10 @@ namespace AshClicker
             this.listView1.GridLines = true;
             this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listView1.HideSelection = false;
-            this.listView1.Location = new System.Drawing.Point(17, 174);
+            this.listView1.Location = new System.Drawing.Point(17, 200);
             this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(372, 171);
+            this.listView1.Size = new System.Drawing.Size(372, 158);
             this.listView1.TabIndex = 9;
             this.listView1.UseCompatibleStateImageBehavior = false;
             this.listView1.View = System.Windows.Forms.View.Details;
@@ -161,9 +161,9 @@ namespace AshClicker
             // 
             // buttonDeleteKey
             // 
-            this.buttonDeleteKey.Location = new System.Drawing.Point(235, 351);
+            this.buttonDeleteKey.Location = new System.Drawing.Point(235, 364);
             this.buttonDeleteKey.Name = "buttonDeleteKey";
-            this.buttonDeleteKey.Size = new System.Drawing.Size(154, 53);
+            this.buttonDeleteKey.Size = new System.Drawing.Size(154, 34);
             this.buttonDeleteKey.TabIndex = 10;
             this.buttonDeleteKey.Text = "删除键位";
             this.buttonDeleteKey.UseVisualStyleBackColor = true;
@@ -171,9 +171,9 @@ namespace AshClicker
             // 
             // buttonAddKey
             // 
-            this.buttonAddKey.Location = new System.Drawing.Point(17, 351);
+            this.buttonAddKey.Location = new System.Drawing.Point(17, 364);
             this.buttonAddKey.Name = "buttonAddKey";
-            this.buttonAddKey.Size = new System.Drawing.Size(154, 53);
+            this.buttonAddKey.Size = new System.Drawing.Size(154, 34);
             this.buttonAddKey.TabIndex = 11;
             this.buttonAddKey.Text = "添加键位";
             this.buttonAddKey.UseVisualStyleBackColor = true;

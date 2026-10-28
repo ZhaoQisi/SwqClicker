@@ -35,6 +35,8 @@ namespace AshClicker
         private Panel listHeaderDivider;
         private ToolTip infoToolTip;
         private CircleExclamation pauseInfoIcon;
+        private FlowLayoutPanel profileTabs;
+        private ToolTip profileTabToolTip;
 
         public AshForm()
         {
@@ -71,6 +73,28 @@ namespace AshClicker
 
             pauseInfoIcon = new CircleExclamation { Visible = false };
             Controls.Add(pauseInfoIcon);
+
+            profileTabs = new FlowLayoutPanel
+            {
+                Location = new Point(17, 170),
+                Size = new Size(372, 28),
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoScroll = true,
+                BackColor = Color.Transparent,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+            Controls.Add(profileTabs);
+            profileTabs.BringToFront();
+
+            profileTabToolTip = new ToolTip
+            {
+                AutoPopDelay = 5000,
+                InitialDelay = 300,
+                ReshowDelay = 100,
+                ShowAlways = true
+            };
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
@@ -281,9 +305,11 @@ namespace AshClicker
             }
 
 
-            AshConfigPool.Instance.LoadToList(listView1);
-            FitListColumns();
-            UpdateListHeaderDivider();
+            AshConfigPool.Instance.LoadConfig();
+            LoadActiveProfileToList();
+            LayoutProfileTabs();
+            UpdateProfileTabs();
+
             listView1.ClientSizeChanged += (cs, ce) =>
             {
                 FitListColumns();
@@ -385,6 +411,175 @@ namespace AshClicker
                 2);
             listHeaderDivider.Visible = true;
             listHeaderDivider.BringToFront();
+        }
+
+        /// <summary>
+        /// 配置标签是代码创建的控件，不会参与设计器字体缩放，
+        /// 这里按实际按钮底部和列表顶部重新定位，避免盖住表头。
+        /// </summary>
+        private void LayoutProfileTabs()
+        {
+            if (profileTabs == null || listView1 == null) return;
+
+            var top = buttonSwitchEnable.Bottom;
+            var height = Math.Max(22, listView1.Top - top - 2);
+            profileTabs.Bounds = new Rectangle(listView1.Left, top, listView1.Width, height);
+            profileTabs.BringToFront();
+        }
+
+        private void LoadActiveProfileToList()
+        {
+            listView1.BeginUpdate();
+            try
+            {
+                listView1.Items.Clear();
+                AshConfigPool.Instance.LoadToList(listView1);
+            }
+            finally
+            {
+                listView1.EndUpdate();
+            }
+
+            FitListColumns();
+            UpdateListHeaderDivider();
+        }
+
+        /// <summary>重建配置标签栏，末尾附带一个“＋”新增按钮。</summary>
+        private void UpdateProfileTabs()
+        {
+            if (profileTabs == null) return;
+
+            profileTabs.SuspendLayout();
+
+            var oldControls = new List<Control>();
+            foreach (Control control in profileTabs.Controls)
+            {
+                oldControls.Add(control);
+            }
+
+            profileTabs.Controls.Clear();
+            foreach (var control in oldControls)
+            {
+                control.Dispose();
+            }
+
+            var profiles = AshConfigPool.Instance.Profiles;
+            var tabHeight = Math.Max(18, profileTabs.Height - 4);
+            for (var i = 0; i < profiles.Count; i++)
+            {
+                var index = i;
+                var name = profiles[i].Name;
+                var width = Math.Min(180, Math.Max(64, TextRenderer.MeasureText(name, profileTabs.Font).Width + 24));
+
+                var tab = new Button
+                {
+                    Text = name,
+                    Tag = index,
+                    Width = width,
+                    Height = tabHeight,
+                    Margin = new Padding(0, 2, 4, 0),
+                    FlatStyle = FlatStyle.Flat,
+                    UseVisualStyleBackColor = false,
+                    AutoEllipsis = true,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Cursor = Cursors.Hand,
+                    TabStop = true
+                };
+                tab.FlatAppearance.BorderSize = 0;
+                tab.Click += ProfileTab_Click;
+                tab.DoubleClick += ProfileTab_DoubleClick;
+                profileTabToolTip.SetToolTip(tab, name + "\r\n双击重命名配置");
+                profileTabs.Controls.Add(tab);
+            }
+
+            var addButton = new Button
+            {
+                Text = "＋",
+                Tag = -1,
+                Width = 30,
+                Height = tabHeight,
+                Margin = new Padding(0, 2, 0, 0),
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false,
+                BackColor = Color.FromArgb(246, 238, 238),
+                ForeColor = Color.FromArgb(90, 70, 70),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Cursor = Cursors.Hand,
+                TabStop = true
+            };
+            addButton.FlatAppearance.BorderSize = 1;
+            addButton.FlatAppearance.BorderColor = Color.FromArgb(205, 160, 160);
+            addButton.Click += AddProfile_Click;
+            profileTabToolTip.SetToolTip(addButton, "新增一套配置");
+            profileTabs.Controls.Add(addButton);
+
+            profileTabs.ResumeLayout();
+            profileTabs.Enabled = !started;
+            UpdateProfileTabSelection();
+        }
+
+        private void UpdateProfileTabSelection()
+        {
+            if (profileTabs == null) return;
+
+            var active = AshConfigPool.Instance.ActiveProfileIndex;
+            foreach (Control control in profileTabs.Controls)
+            {
+                var tab = control as Button;
+                if (tab == null || !(tab.Tag is int index) || index < 0) continue;
+
+                var selected = index == active;
+                tab.BackColor = selected
+                    ? Color.FromArgb(255, 252, 252)
+                    : Color.FromArgb(240, 230, 230);
+                tab.ForeColor = Color.FromArgb(55, 55, 55);
+                tab.FlatAppearance.BorderSize = selected ? 1 : 0;
+                tab.FlatAppearance.BorderColor = Color.FromArgb(200, 140, 140);
+            }
+        }
+
+        private void ProfileTab_Click(object sender, EventArgs e)
+        {
+            if (started) return;
+
+            var tab = sender as Button;
+            if (tab == null || !(tab.Tag is int index)) return;
+            if (index == AshConfigPool.Instance.ActiveProfileIndex) return;
+
+            AshConfigPool.Instance.UpdateFromList(listView1);
+            AshConfigPool.Instance.SetActiveProfile(index);
+            LoadActiveProfileToList();
+            UpdateProfileTabSelection();
+        }
+
+        private void ProfileTab_DoubleClick(object sender, EventArgs e)
+        {
+            if (started) return;
+
+            var tab = sender as Button;
+            if (tab == null || !(tab.Tag is int index)) return;
+
+            var profiles = AshConfigPool.Instance.Profiles;
+            if (index < 0 || index >= profiles.Count) return;
+
+            using (var form = new ProfileRenameForm(profiles[index].Name))
+            {
+                if (form.ShowDialog(this) == DialogResult.OK &&
+                    AshConfigPool.Instance.RenameProfile(index, form.ProfileName))
+                {
+                    UpdateProfileTabs();
+                }
+            }
+        }
+
+        private void AddProfile_Click(object sender, EventArgs e)
+        {
+            if (started) return;
+
+            AshConfigPool.Instance.UpdateFromList(listView1);
+            AshConfigPool.Instance.AddProfile();
+            LoadActiveProfileToList();
+            UpdateProfileTabs();
         }
 
         /// <summary>连发循环的每一拍：驱动模式下由拦截线程更新状态，这里只负责发送；DD 模式需要自己轮询。</summary>
@@ -557,6 +752,7 @@ namespace AshClicker
             buttonDeleteKey.Enabled = false;
             buttonToggleHotkey.Enabled = false;
             buttonPauseHotkey.Enabled = false;
+            profileTabs.Enabled = false;
 
             _activeSchemes.Clear();
             UpdateMiniStatus();
@@ -598,6 +794,7 @@ namespace AshClicker
             buttonDeleteKey.Enabled = true;
             buttonToggleHotkey.Enabled = true;
             buttonPauseHotkey.Enabled = true;
+            profileTabs.Enabled = true;
 
             _activeSchemes.Clear();
             UpdateMiniStatus();
@@ -679,6 +876,7 @@ namespace AshClicker
             }
 
             UpdateListHeaderDivider();
+            LayoutProfileTabs();
         }
 
         private void ShowMiniStatus()
@@ -981,6 +1179,7 @@ namespace AshClicker
             backgroundTimer.Dispose();
             backgroundSkin.Dispose();
             infoToolTip.Dispose();
+            profileTabToolTip.Dispose();
 
             if (_start != null)
             {
