@@ -161,9 +161,9 @@ namespace AshClicker
             // 
             // buttonDeleteKey
             // 
-            this.buttonDeleteKey.Location = new System.Drawing.Point(235, 364);
+            this.buttonDeleteKey.Location = new System.Drawing.Point(141, 364);
             this.buttonDeleteKey.Name = "buttonDeleteKey";
-            this.buttonDeleteKey.Size = new System.Drawing.Size(154, 34);
+            this.buttonDeleteKey.Size = new System.Drawing.Size(112, 34);
             this.buttonDeleteKey.TabIndex = 10;
             this.buttonDeleteKey.Text = "删除键位";
             this.buttonDeleteKey.UseVisualStyleBackColor = true;
@@ -173,7 +173,7 @@ namespace AshClicker
             // 
             this.buttonAddKey.Location = new System.Drawing.Point(17, 364);
             this.buttonAddKey.Name = "buttonAddKey";
-            this.buttonAddKey.Size = new System.Drawing.Size(154, 34);
+            this.buttonAddKey.Size = new System.Drawing.Size(112, 34);
             this.buttonAddKey.TabIndex = 11;
             this.buttonAddKey.Text = "添加键位";
             this.buttonAddKey.UseVisualStyleBackColor = true;

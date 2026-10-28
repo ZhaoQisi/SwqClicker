@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 
 namespace AshClicker
@@ -8,9 +9,11 @@ namespace AshClicker
     public class ProfileRenameForm : Form
     {
         private readonly TextBox _nameBox;
+        private readonly BackgroundSkin backgroundSkin;
 
         public ProfileRenameForm(string currentName)
         {
+            DoubleBuffered = true;
             Text = "重命名配置";
             ClientSize = new Size(320, 120);
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -58,6 +61,38 @@ namespace AshClicker
 
             AcceptButton = okButton;
             CancelButton = cancelButton;
+
+            backgroundSkin = new BackgroundSkin(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            backgroundSkin.Refresh();
+            if (backgroundSkin.Image != null)
+            {
+                BackgroundSkin.SetLabelsTransparent(this);
+            }
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            var image = backgroundSkin == null ? null : backgroundSkin.Image;
+            if (image == null)
+            {
+                base.OnPaintBackground(e);
+                return;
+            }
+
+            e.Graphics.Clear(Color.White);
+            BackgroundSkin.DrawCover(e.Graphics, image, ClientRectangle);
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            backgroundSkin.Dispose();
+            base.OnFormClosed(e);
         }
 
         public string ProfileName { get; private set; }

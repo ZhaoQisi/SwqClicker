@@ -186,6 +186,22 @@ namespace AshClicker
             return _activeProfile;
         }
 
+        /// <summary>删除当前配置，至少保留一套。</summary>
+        public bool DeleteActiveProfile()
+        {
+            EnsureProfiles();
+            if (_profiles.Count <= 1) return false;
+
+            _profiles.RemoveAt(_activeProfile);
+            if (_activeProfile >= _profiles.Count)
+            {
+                _activeProfile = _profiles.Count - 1;
+            }
+
+            SaveConfig();
+            return true;
+        }
+
         /// <summary>重命名指定配置。</summary>
         public bool RenameProfile(int index, string name)
         {

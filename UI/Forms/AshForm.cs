@@ -35,8 +35,13 @@ namespace AshClicker
         private Panel listHeaderDivider;
         private ToolTip infoToolTip;
         private CircleExclamation pauseInfoIcon;
+        private Panel profileTabsViewport;
         private FlowLayoutPanel profileTabs;
+        private Button profileTabsLeft;
+        private Button profileTabsRight;
+        private int profileTabsScrollX;
         private ToolTip profileTabToolTip;
+        private Button buttonDeleteProfile;
 
         public AshForm()
         {
@@ -74,19 +79,66 @@ namespace AshClicker
             pauseInfoIcon = new CircleExclamation { Visible = false };
             Controls.Add(pauseInfoIcon);
 
-            profileTabs = new FlowLayoutPanel
+            profileTabsViewport = new Panel
             {
                 Location = new Point(17, 170),
-                Size = new Size(372, 28),
+                Size = new Size(372, 30),
+                BackColor = Color.Transparent
+            };
+
+            profileTabs = new FlowLayoutPanel
+            {
+                Location = new Point(22, 0),
+                Size = new Size(328, 30),
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                AutoScroll = true,
+                AutoScroll = false,
                 BackColor = Color.Transparent,
                 Padding = new Padding(0),
                 Margin = new Padding(0)
             };
-            Controls.Add(profileTabs);
-            profileTabs.BringToFront();
+
+            profileTabsLeft = new Button
+            {
+                Text = "‹",
+                Location = new Point(0, 0),
+                Size = new Size(22, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(246, 238, 238),
+                ForeColor = Color.FromArgb(90, 70, 70),
+                Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
+                TabStop = false,
+                Visible = false
+            };
+            profileTabsLeft.FlatAppearance.BorderSize = 0;
+
+            profileTabsRight = new Button
+            {
+                Text = "›",
+                Location = new Point(350, 0),
+                Size = new Size(22, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(246, 238, 238),
+                ForeColor = Color.FromArgb(90, 70, 70),
+                Font = new Font(Font.FontFamily, 12F, FontStyle.Bold),
+                TabStop = false,
+                Visible = false
+            };
+            profileTabsRight.FlatAppearance.BorderSize = 0;
+
+            profileTabsViewport.Controls.Add(profileTabs);
+            profileTabsViewport.Controls.Add(profileTabsLeft);
+            profileTabsViewport.Controls.Add(profileTabsRight);
+            profileTabsLeft.BringToFront();
+            profileTabsRight.BringToFront();
+
+            Controls.Add(profileTabsViewport);
+            profileTabsViewport.BringToFront();
+
+            profileTabsLeft.Click += (s, e) => ScrollProfileTabs(-120);
+            profileTabsRight.Click += (s, e) => ScrollProfileTabs(120);
+            profileTabs.MouseWheel += ProfileTabs_MouseWheel;
+            profileTabsViewport.MouseWheel += ProfileTabs_MouseWheel;
 
             profileTabToolTip = new ToolTip
             {
@@ -95,6 +147,20 @@ namespace AshClicker
                 ReshowDelay = 100,
                 ShowAlways = true
             };
+
+            profileTabToolTip.SetToolTip(profileTabsLeft, "向左滚动配置");
+            profileTabToolTip.SetToolTip(profileTabsRight, "向右滚动配置");
+
+            buttonDeleteProfile = new Button
+            {
+                Text = "删除配置",
+                Location = new Point(265, 364),
+                Size = new Size(124, 34),
+                UseVisualStyleBackColor = true
+            };
+            buttonDeleteProfile.Click += ButtonDeleteProfile_Click;
+            Controls.Add(buttonDeleteProfile);
+            buttonDeleteProfile.BringToFront();
 
             backgroundSkin = new BackgroundSkin(
                 Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "background.png"));
@@ -419,20 +485,95 @@ namespace AshClicker
         /// </summary>
         private void LayoutProfileTabs()
         {
-            if (profileTabs == null || listView1 == null) return;
+            if (profileTabsViewport == null || profileTabs == null || listView1 == null) return;
 
             // 标签栏至少 30px 高，保证文字不被边框裁掉。
             var top = buttonSwitchEnable.Bottom;
-            profileTabs.Bounds = new Rectangle(listView1.Left, top, listView1.Width, 30);
+            profileTabsViewport.Bounds = new Rectangle(listView1.Left, top, listView1.Width, 30);
+            profileTabsRight.Left = profileTabsViewport.Width - profileTabsRight.Width;
 
             // 列表下移到标签栏下方，底部仍贴着添加/删除按钮，保持整体布局。
-            var listTop = profileTabs.Bottom + 2;
+            var listTop = profileTabsViewport.Bottom + 2;
             var listBottom = buttonAddKey.Top - 6;
             var listHeight = Math.Max(60, listBottom - listTop);
             listView1.Bounds = new Rectangle(listView1.Left, listTop, listView1.Width, listHeight);
 
-            profileTabs.BringToFront();
+            // 删除配置是代码创建的按钮，不参与设计器缩放，按实际按钮宽度定位。
+            var deleteProfileLeft = buttonDeleteKey.Right + 12;
+            buttonDeleteProfile.Location = new Point(deleteProfileLeft, buttonAddKey.Top);
+            buttonDeleteProfile.Size = new Size(
+                Math.Max(60, listView1.Right - deleteProfileLeft),
+                buttonAddKey.Height);
+            buttonDeleteProfile.BringToFront();
+
+            profileTabsViewport.BringToFront();
+            UpdateProfileTabScroll(false);
             UpdateListHeaderDivider();
+        }
+
+        private void ScrollProfileTabs(int delta)
+        {
+            profileTabsScrollX += delta;
+            UpdateProfileTabScroll(false);
+        }
+
+        private void ProfileTabs_MouseWheel(object sender, MouseEventArgs e)
+        {
+            ScrollProfileTabs(-e.Delta);
+        }
+
+        /// <summary>
+        /// 标签超出宽度时用左右箭头滚动，不再使用会盖住文字的横向滚动条。
+        /// </summary>
+        private void UpdateProfileTabScroll(bool ensureActive)
+        {
+            if (profileTabsViewport == null || profileTabs == null) return;
+
+            var viewWidth = Math.Max(0, profileTabsViewport.ClientSize.Width - 44);
+            var totalWidth = 0;
+            foreach (Control control in profileTabs.Controls)
+            {
+                totalWidth += control.Width + control.Margin.Horizontal;
+            }
+
+            var maxScroll = Math.Max(0, totalWidth - viewWidth);
+
+            if (ensureActive)
+            {
+                profileTabs.PerformLayout();
+                var active = AshConfigPool.Instance.ActiveProfileIndex;
+                foreach (Control control in profileTabs.Controls)
+                {
+                    var tab = control as Button;
+                    if (tab == null || !(tab.Tag is int index) || index != active) continue;
+
+                    var left = tab.Left;
+                    var right = left + tab.Width;
+
+                    if (left < profileTabsScrollX)
+                    {
+                        profileTabsScrollX = left;
+                    }
+                    else if (right > profileTabsScrollX + viewWidth)
+                    {
+                        profileTabsScrollX = right - viewWidth;
+                    }
+
+                    break;
+                }
+            }
+
+            profileTabsScrollX = Math.Max(0, Math.Min(maxScroll, profileTabsScrollX));
+
+            profileTabs.Width = Math.Max(viewWidth, totalWidth);
+            profileTabs.Height = profileTabsViewport.ClientSize.Height;
+            profileTabs.Left = 22 - profileTabsScrollX;
+
+            var overflow = totalWidth > viewWidth;
+            profileTabsLeft.Visible = overflow;
+            profileTabsRight.Visible = overflow;
+            profileTabsLeft.Enabled = overflow && profileTabsScrollX > 0;
+            profileTabsRight.Enabled = overflow && profileTabsScrollX < maxScroll;
         }
 
         private void LoadActiveProfileToList()
@@ -473,7 +614,7 @@ namespace AshClicker
 
             var profiles = AshConfigPool.Instance.Profiles;
             // 至少留出文字高度 + 上下边距，避免标题被裁成一半。
-            var tabHeight = Math.Max(24, profileTabs.Height - 4);
+            var tabHeight = Math.Max(24, profileTabsViewport.Height - 4);
             for (var i = 0; i < profiles.Count; i++)
             {
                 var index = i;
@@ -524,7 +665,39 @@ namespace AshClicker
 
             profileTabs.ResumeLayout();
             profileTabs.Enabled = !started;
+            UpdateProfileTabScroll(true);
             UpdateProfileTabSelection();
+            UpdateDeleteProfileButton();
+        }
+
+        private void UpdateDeleteProfileButton()
+        {
+            if (buttonDeleteProfile == null) return;
+            buttonDeleteProfile.Enabled = !started && AshConfigPool.Instance.Profiles.Count > 1;
+        }
+
+        private void ButtonDeleteProfile_Click(object sender, EventArgs e)
+        {
+            if (started) return;
+
+            var profiles = AshConfigPool.Instance.Profiles;
+            if (profiles.Count <= 1) return;
+
+            var profile = AshConfigPool.Instance.ActiveProfile;
+            var result = MessageBox.Show(
+                "确定删除配置「" + profile.Name + "」吗？\r\n该配置下的所有键位都会一起删除。",
+                "删除配置",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
+
+            if (result != DialogResult.Yes) return;
+
+            if (AshConfigPool.Instance.DeleteActiveProfile())
+            {
+                LoadActiveProfileToList();
+                UpdateProfileTabs();
+            }
         }
 
         private void UpdateProfileTabSelection()
@@ -548,6 +721,8 @@ namespace AshClicker
                 tab.FlatAppearance.BorderSize = selected ? 1 : 0;
                 tab.FlatAppearance.BorderColor = Color.FromArgb(225, 185, 185);
             }
+
+            UpdateDeleteProfileButton();
         }
 
         private void ProfileTab_Click(object sender, EventArgs e)
@@ -770,6 +945,7 @@ namespace AshClicker
             buttonToggleHotkey.Enabled = false;
             buttonPauseHotkey.Enabled = false;
             profileTabs.Enabled = false;
+            buttonDeleteProfile.Enabled = false;
 
             _activeSchemes.Clear();
             UpdateMiniStatus();
@@ -812,6 +988,7 @@ namespace AshClicker
             buttonToggleHotkey.Enabled = true;
             buttonPauseHotkey.Enabled = true;
             profileTabs.Enabled = true;
+            UpdateDeleteProfileButton();
 
             _activeSchemes.Clear();
             UpdateMiniStatus();
