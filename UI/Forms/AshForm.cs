@@ -445,6 +445,18 @@ namespace AshClicker
         /// ListView 原生表头和内容之间没有明显的分隔线，
         /// 这里按实际表头底部位置叠一条 1px 的线。
         /// </summary>
+        /// <summary>把子窗口放到主窗口中心，并限制在当前屏幕工作区内。</summary>
+        private Point GetCenteredChildLocation(Form child)
+        {
+            var x = Left + (Width - child.Width) / 2;
+            var y = Top + (Height - child.Height) / 2;
+
+            var area = Screen.FromControl(this).WorkingArea;
+            x = Math.Max(area.Left + 8, Math.Min(x, area.Right - child.Width - 8));
+            y = Math.Max(area.Top + 8, Math.Min(y, area.Bottom - child.Height - 8));
+            return new Point(x, y);
+        }
+
         private void UpdateListHeaderDivider()
         {
             if (listHeaderDivider == null || listView1 == null ||
@@ -686,6 +698,8 @@ namespace AshClicker
             var profile = AshConfigPool.Instance.ActiveProfile;
             using (var confirm = new ConfirmDeleteProfileForm(profile.Name))
             {
+                confirm.StartPosition = FormStartPosition.Manual;
+                confirm.Location = GetCenteredChildLocation(confirm);
                 if (confirm.ShowDialog(this) != DialogResult.Yes) return;
             }
 
@@ -752,6 +766,9 @@ namespace AshClicker
 
             using (var form = new ProfileRenameForm(profiles[index].Name))
             {
+                form.StartPosition = FormStartPosition.Manual;
+                form.Location = GetCenteredChildLocation(form);
+
                 if (form.ShowDialog(this) == DialogResult.OK &&
                     AshConfigPool.Instance.RenameProfile(index, form.ProfileName))
                 {
@@ -1174,6 +1191,8 @@ namespace AshClicker
         private void buttonAddKey_Click(object sender, EventArgs e)
         {
             var frame = new KeySelectionFrame(listView1, SameKeyRepeatAllowed);
+            frame.StartPosition = FormStartPosition.Manual;
+            frame.Location = GetCenteredChildLocation(frame);
             frame.Show(this);
         }
 
@@ -1271,6 +1290,8 @@ namespace AshClicker
         {
             using (var form = new HotkeyCaptureForm(currentKey, allowModifiers))
             {
+                form.StartPosition = FormStartPosition.Manual;
+                form.Location = GetCenteredChildLocation(form);
                 return form.ShowDialog(this) == DialogResult.OK ? form.SelectedKey : (int?)null;
             }
         }
